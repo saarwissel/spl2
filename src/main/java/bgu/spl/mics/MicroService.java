@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public abstract class MicroService implements Runnable {
 
+
     private boolean terminated = false;
     private final String name;
     private ConcurrentHashMap<Class<? extends Message>,  Callback<?>> callbacks;
@@ -97,12 +98,12 @@ public abstract class MicroService implements Runnable {
      * @param <T>       The type of the expected result of the request
      *                  {@code e}
      * @param e         The event to send
-     * @return  		{@link Future<T>} object that may be resolved later by a different
-     *         			micro-service processing this event.
-     * 	       			null in case no micro-service has subscribed to {@code e.getClass()}.
+     * @return         {@link Future<T>} object that may be resolved later by a different
+     *                micro-service processing this event.
+     *                   null in case no micro-service has subscribed to {@code e.getClass()}.
      */
     protected final <T> Future<T> sendEvent(Event<T> e) {
-       Future f= MessageBusImpl.getInstance().sendEvent(e);
+        Future f= MessageBusImpl.getInstance().sendEvent(e);
         if (f.result==null)
             return null;
         return f;
@@ -160,9 +161,11 @@ public abstract class MicroService implements Runnable {
     @Override
     public final void run() {
         initialize();
+        MessageBusImpl bus = MessageBusImpl.getInstance();
+        bus.register(this);
         while (!terminated) {
             try {
-                Message m = MessageBusImpl.getInstance().awaitMessage(this);
+                Message m = bus.awaitMessage(this);
                 Callback<Message> callback = (Callback<Message>) callbacks.get(m.getClass());
                 if(callback!=null)
                     callback.call(m);
@@ -171,6 +174,6 @@ public abstract class MicroService implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
+        bus.unregister(this); //+++++++++++ לבדוק מימוש לסינגלטון
     }
-
 }

@@ -9,7 +9,6 @@ import java.util.concurrent.*;
  * All other methods and members you add the class must be private.
  */
 public class MessageBusImpl implements MessageBus {
-	private static MessageBusImpl instance = null;
 	private ConcurrentHashMap<Event, LinkedBlockingQueue<MicroService>> eventSubscribers;
 	private ConcurrentHashMap<Broadcast, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
 	private ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> numMicro;
@@ -17,6 +16,9 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<Event, MicroService> micrtComplete;//++++++++++++
 	private ConcurrentHashMap<Event, MicroService> eActuall;
 
+	private static class SingletonHolder {
+		private static final MessageBusImpl INSTANCE = new MessageBusImpl();
+	}
 
 	public MessageBusImpl() {
 		this.eventSubscribers = new ConcurrentHashMap<>();
@@ -25,7 +27,7 @@ public class MessageBusImpl implements MessageBus {
 		this.micrtFuture = new ConcurrentHashMap<>();
 		this.micrtComplete = new ConcurrentHashMap<>();//++++++++++++
 		this.eActuall = new ConcurrentHashMap<>();
-		instance = this;
+
 	}
 
 	public MessageBusImpl(int eventSus, int brodSus, int numMicro, int micrtFuture, int micrtComplete, int eActuall) {
@@ -35,7 +37,6 @@ public class MessageBusImpl implements MessageBus {
 		this.micrtFuture = new ConcurrentHashMap<>(micrtFuture);
 		this.micrtComplete = new ConcurrentHashMap<>(micrtComplete);//++++++++++++
 		this.eActuall = new ConcurrentHashMap<>(eActuall);
-		instance = this;
 	}
 
 	@Override
@@ -121,12 +122,8 @@ public class MessageBusImpl implements MessageBus {
 		return queue.take();
 	}
 
-
 	public static synchronized MessageBusImpl getInstance() {
-		if (instance == null) {
-			instance = new MessageBusImpl();
-		}
-		return instance;
+		return SingletonHolder.INSTANCE;
 
 	}
 }

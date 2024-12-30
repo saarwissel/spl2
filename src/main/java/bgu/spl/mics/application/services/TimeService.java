@@ -1,6 +1,8 @@
 package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
+import bgu.spl.mics.example.messages.TerminatedBroadcast;
+import bgu.spl.mics.example.messages.TickBroadcast;
 
 /**
  * TimeService acts as the global timer for the system, broadcasting TickBroadcast messages
@@ -14,9 +16,12 @@ public class TimeService extends MicroService {
      * @param TickTime  The duration of each tick in milliseconds.
      * @param Duration  The total number of ticks before the service terminates.
      */
+    int TickTime; //  מגדיר כמה זמן זו יחידת זמן במיליסקונדס
+    int Duration; // כמה יחידות זמן יש לנו
     public TimeService(int TickTime, int Duration) {
-        super("Change_This_Name");
-        // TODO Implement this
+        super("timeGuy",1);
+        this.TickTime = TickTime;
+        this.Duration = Duration;
     }
 
     /**
@@ -25,6 +30,23 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
-        // TODO Implement this
+        long start = System.currentTimeMillis();
+        long time = (this.TickTime/1000)*this.Duration;
+        int c = 0;
+        while(time > System.currentTimeMillis()-start){
+            if (System.currentTimeMillis()-start % this.TickTime == 0){
+                c = c+1;
+                sendBroadcast(new TickBroadcast(c));
+            }
+            else {
+                try {
+                    wait(this.TickTime - (System.currentTimeMillis()-start % this.TickTime));
+                } catch (InterruptedException e) {
+                    e.printStackTrace(); //אמור לשמש לדיבאגינג אבל אחר כך נעיף
+                }
+            }
+
+        }
+        sendBroadcast(new TerminatedBroadcast()); //צריך ליצור את השידור הזה
     }
 }
