@@ -20,6 +20,8 @@ public class Camera {
     private CameraStatus status; // סטטוס המצלמה
     private LinkedList<StampedDetectedObjects> Tobjects; // רשימת אובייקטים שזוהו
 
+
+
     public Camera(int id, int frequency) {
         this.id = id;
         this.frequency = frequency;
@@ -45,12 +47,29 @@ public class Camera {
         return status;
     }
 
-    public void setStatus(CameraStatus status) {
-        this.status = status;
+    public void setStatus(int status) {
+        if (status == 0) {
+            this.status = CameraStatus.UP;
+        } else if (status == 1) {
+            this.status = CameraStatus.DOWN;
+        } else {
+            this.status = CameraStatus.ERROR;
+        }
     }
 
     public LinkedList<StampedDetectedObjects> getStampedDetectedObjects() {
         return Tobjects;
+    }
+
+
+    public List<DetectedObject> getDetectedObjectsAtTick(int tick) {
+        // סינון הרשימה של StampedDetectedObjects לפי הזמן הנתון
+        for (StampedDetectedObjects stampedObject : Tobjects) {
+            if (stampedObject.getTime() == tick) {
+                return stampedObject.getDobjects(); // מחזיר את רשימת האובייקטים שהתגלו בטיק זה
+            }
+        }
+        return new LinkedList<>(); // אם לא נמצאו אובייקטים בטיק הזה, מחזיר רשימה ריקה
     }
     @Override
     public String toString() {

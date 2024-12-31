@@ -1,6 +1,8 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Represents objects detected by the camera at a specific timestamp.
@@ -8,17 +10,23 @@ import java.util.LinkedList;
  */
 public class StampedDetectedObjects {
     int time;
-    LinkedList<DetectedObject> Dobjects;
-    public StampedDetectedObjects(){
-        this.time =(int) System.currentTimeMillis();
-        this.Dobjects = new LinkedList<DetectedObject>();
-    }
+    List<DetectedObject> Dobjects;
+    public StampedDetectedObjects(int numOfTick){
+        this.time = numOfTick;
+        this.Dobjects = new ArrayList<>();
+        }
+
 
     public int getTime() {
         return time;
     }
 
-    public LinkedList<DetectedObject> getDobjects() {
+
+    public List<DetectedObject> getDobjects() {
         return Dobjects;
+    }
+
+    public void addDetectedObject(DetectedObject detectedObject) {
+        Dobjects.add(detectedObject); // הוספת אובייקט לרשימה
     }
 }

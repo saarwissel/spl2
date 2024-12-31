@@ -5,9 +5,13 @@ import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.objects.Camera;
 import bgu.spl.mics.application.objects.DetectedObject;
 import bgu.spl.mics.application.objects.StampedDetectedObjects;
+import bgu.spl.mics.example.messages.DetectObjectsEvents;
 import bgu.spl.mics.example.messages.TerminatedBroadcast;
 import bgu.spl.mics.example.messages.TickBroadcast;
 import bgu.spl.mics.example.messages.CrashedBroadcast;
+
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -26,7 +30,7 @@ public class CameraService extends MicroService {
      * @param camera The Camera object that this service will use to detect objects.
      */
     public CameraService(Camera camera) {
-        super("Change_This_Name",1);
+        super(Integer.toString(camera.getId()),Integer.MAX_VALUE);
         this.camera=camera;
         currTime=  System.currentTimeMillis();
     }
@@ -38,27 +42,28 @@ public class CameraService extends MicroService {
      */
     @Override
     protected void initialize() {
+    camera.setStatus(0);
     subscribeBroadcast(TickBroadcast.class, (TickBroadcast tick) -> {
         int currentTick = tick.getTick();
+        for(StampedDetectedObjects s:camera.getStampedDetectedObjects()){
+            if(s.getTime()+camera.getFrequency()==currentTick){
+                DetectObjectsEvents e=new DetectObjectsEvents(currentTick, (List<DetectedObject>) s);
+                sendEvent(e);
+            }
+        }
     }
     );
     subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast terminated) -> {
+        camera.setStatus(1);
         terminate();
     }
     );
     subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {
+        camera.setStatus(2);
         terminate();
     }
     );
+
     }
 
-        if(camera.isRunning()){
-            StampedDetectedObjects stampedDetectedObjects = camera.detect();
-            if(stampedDetectedObjects!=null){
-                for(DetectedObject detectedObject: stampedDetectedObjects.getDobjects()){
-                    MessageBusImpl.getInstance().sendEvent(new DetectObjectsEvent(detectedObject));
-                }
-            }
-        }
-    }
 }
