@@ -9,8 +9,8 @@ import java.util.concurrent.*;
  * All other methods and members you add the class must be private.
  */
 public class MessageBusImpl implements MessageBus {
-	private ConcurrentHashMap<Event, LinkedBlockingQueue<MicroService>> eventSubscribers;
-	private ConcurrentHashMap<Broadcast, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
+	private ConcurrentHashMap<Class<? extends Event>, LinkedBlockingQueue<MicroService>> eventSubscribers;
+	private ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
 	private ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> numMicro;
 	private ConcurrentHashMap<MicroService, Future> micrtFuture;
 	private ConcurrentHashMap<Event, MicroService> micrtComplete;//++++++++++++
@@ -41,12 +41,13 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		eventSubscribers.get(type.getClass()).add(m);
+		this.eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>());
+
 	}
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		this.broadcastSubscribers.get(type.getClass()).add(m);
+		broadcastSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>()).add(m);
 	}
 
 	@Override
@@ -108,18 +109,17 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
-
 		LinkedBlockingQueue<Message> queue = numMicro.get(m);
-		//take of from all the messege queue
-		while (queue.isEmpty()) {
-			try {
-				this.wait();
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-
+		if (queue == null) {
+			throw new IllegalStateException("MicroService " + m.getName() + " is not registered.");
 		}
-		return queue.take();
+
+		synchronized (queue) { // ודא סינכרון על התור
+			while (queue.isEmpty()) {
+				queue.wait(); // ממתין עד שההודעה תגיע
+			}
+			return queue.take(); // מחזיר הודעה
+		}
 	}
 
 	public static synchronized MessageBusImpl getInstance() {

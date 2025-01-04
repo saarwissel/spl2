@@ -29,7 +29,7 @@ public class CameraService extends MicroService {
      * @param camera The Camera object that this service will use to detect objects.
      */
     public CameraService(Camera camera) {
-        super(Integer.toString(camera.getId()),Integer.MAX_VALUE);
+        super(Integer.toString(camera.getId()),100);
         this.camera=camera;
         currTime=  System.currentTimeMillis();
     }

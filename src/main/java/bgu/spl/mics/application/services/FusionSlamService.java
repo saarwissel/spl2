@@ -28,7 +28,7 @@ public class FusionSlamService extends MicroService {
      * @param fusionSlam The FusionSLAM object responsible for managing the global map.
      */
     public FusionSlamService(FusionSlam fusionSlam) {
-        super("The Fusion Slam",Integer.MAX_VALUE);
+        super("The Fusion Slam",100);
         this.isPoseT = false;
         this.isLidarT = false;
         this.waitingList = new ArrayList<>();

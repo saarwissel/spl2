@@ -21,7 +21,7 @@ public class TimeService extends MicroService {
     int TickTime; //  מגדיר כמה זמן זו יחידת זמן במיליסקונדס
     int Duration; // כמה יחידות זמן יש לנו
     public TimeService(int TickTime, int Duration) {
-        super("timeGuy",1);
+        super("timeGuy",100);
         this.TickTime = TickTime;
         this.Duration = Duration;
     }
@@ -32,27 +32,27 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
+        long startTime = System.currentTimeMillis();
+        long totalTime = this.TickTime * this.Duration;
+        int tickCounter = 0;
 
-        long start = System.currentTimeMillis();
-        long time = (this.TickTime/1000)*this.Duration;
-        int c = 0;
-        while(time > System.currentTimeMillis()-start){  //+++++++++++++++++++++++++
-            if (System.currentTimeMillis()-start % this.TickTime == 0){
-                c = c+1;
-                StatisticalFolder.getInstance().setSystemRuntime(c);
-                sendBroadcast(new TickBroadcast(c));
+        while (System.currentTimeMillis() - startTime < totalTime) {
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            long remTime = Math.max(0, this.TickTime - (elapsedTime % this.TickTime)); // מניעת ערכים שליליים
 
-            }
-            else {
-                try {
-                    wait(this.TickTime - (System.currentTimeMillis()-start % this.TickTime));
-                } catch (InterruptedException e) {
-                    e.printStackTrace(); //אמור לשמש לדיבאגינג אבל אחר כך נעיף
-                }
+            if (elapsedTime / this.TickTime > tickCounter) { // וידוא שהטיק הנוכחי לא שודר כבר
+                tickCounter++;
+                sendBroadcast(new TickBroadcast(tickCounter));
             }
 
+            try {
+                Thread.sleep(remTime); // מחכה בצורה מדויקת בין טיקים
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
-        sendBroadcast(new CrashedBroadcast());
-        sendBroadcast(new TerminatedBroadcast("time")); //צריך ליצור את השידור הזה
+
+        sendBroadcast(new TerminatedBroadcast("time"));
     }
+
 }

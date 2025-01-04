@@ -4,6 +4,7 @@ import bgu.spl.mics.application.messages.DetectObjectsEvents;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * LiDarWorkerTracker is responsible for managing a LiDAR worker.
@@ -21,13 +22,13 @@ public class LiDarWorkerTracker {
 
     int id;
     int frequency;
-    LinkedList<TrackedObject> TrackObjects;
+    ConcurrentLinkedQueue<TrackedObject> TrackObjects;
     Status status;
 
     public LiDarWorkerTracker(int id, int frequency) {
         this.id = id;
         this.frequency = frequency;
-        this.TrackObjects = new LinkedList<TrackedObject>();
+        this.TrackObjects = new ConcurrentLinkedQueue<>();
         status= Status.UP;
     }
 
@@ -41,7 +42,7 @@ public class LiDarWorkerTracker {
     public TrackedObject maketrack(DetectObjectsEvents events,DetectedObject t,List<CloudPoint> l){//+++++++ checkwithgal
         return new TrackedObject(t.getId(),events.getTime(),t.getDescription(),l,events.getDetectionTime());
     }
-    public LinkedList<TrackedObject> getTrackObjects() {
+    public ConcurrentLinkedQueue<TrackedObject> getTrackObjects() {
         return TrackObjects;
     }
 
