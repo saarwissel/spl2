@@ -1,5 +1,6 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,11 +16,31 @@ public class GPSIMU {
     }
     int currentTick;
     Status status;
-    LinkedList<Pose> poseList;
+    List<Pose> poseList;
 
-    public GPSIMU() {
-        this.currentTick = (int)System.currentTimeMillis();
-        this.status = Status.DOWN;
-        this.poseList = new LinkedList<Pose>();
+
+    public GPSIMU(int Tick) {
+        this.currentTick = Tick;
+        this.status = Status.UP;
+        this.poseList = new ArrayList<>();
+    }
+
+    public int getCurrentTick() {
+        return currentTick;
+    }
+
+    public List<Pose> getPoseList() {
+        return poseList;
+    }
+
+    public void setStatus(int i) {
+        if (i == 0) {
+            this.status = Status.UP;
+        } else if (i == 1) {
+            this.status = Status.DOWN;
+        } else if(i == 2){
+            this.status = Status.ERROR;
+        }
+        System.out.println("Plese enter right status");
     }
 }

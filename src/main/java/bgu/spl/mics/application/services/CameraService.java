@@ -1,16 +1,15 @@
 package bgu.spl.mics.application.services;
 
-import bgu.spl.mics.MessageBusImpl;
 import bgu.spl.mics.MicroService;
 import bgu.spl.mics.application.objects.Camera;
 import bgu.spl.mics.application.objects.DetectedObject;
 import bgu.spl.mics.application.objects.StampedDetectedObjects;
-import bgu.spl.mics.example.messages.DetectObjectsEvents;
-import bgu.spl.mics.example.messages.TerminatedBroadcast;
-import bgu.spl.mics.example.messages.TickBroadcast;
-import bgu.spl.mics.example.messages.CrashedBroadcast;
+import bgu.spl.mics.application.objects.StatisticalFolder;
+import bgu.spl.mics.application.messages.DetectObjectsEvents;
+import bgu.spl.mics.application.messages.TerminatedBroadcast;
+import bgu.spl.mics.application.messages.TickBroadcast;
+import bgu.spl.mics.application.messages.CrashedBroadcast;
 
-import java.util.LinkedList;
 import java.util.List;
 
 
@@ -45,17 +44,21 @@ public class CameraService extends MicroService {
     camera.setStatus(0);
     subscribeBroadcast(TickBroadcast.class, (TickBroadcast tick) -> {
         int currentTick = tick.getTick();
+        int addStat = camera.getStampedDetectedObjects().size();
         for(StampedDetectedObjects s:camera.getStampedDetectedObjects()){
             if(s.getTime()+camera.getFrequency()==currentTick){
-                DetectObjectsEvents e=new DetectObjectsEvents(currentTick, (List<DetectedObject>) s);
+                DetectObjectsEvents e=new DetectObjectsEvents(currentTick,this.camera.getFrequency(),(List<DetectedObject>) s,s.getTime());
+                StatisticalFolder.getInstance().setNumDetectedObjects(addStat); // סטטיסטיקה סינגלטון סטטיסטי  נוסיף addStat
                 sendEvent(e);
             }
         }
     }
     );
     subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast terminated) -> {
-        camera.setStatus(1);
-        terminate();
+        if(terminated.getService() != "pose") {
+            camera.setStatus(1);
+            terminate();
+        }
     }
     );
     subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {

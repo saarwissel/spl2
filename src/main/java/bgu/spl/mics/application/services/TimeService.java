@@ -1,8 +1,10 @@
 package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.example.messages.TerminatedBroadcast;
-import bgu.spl.mics.example.messages.TickBroadcast;
+import bgu.spl.mics.application.objects.StatisticalFolder;
+import bgu.spl.mics.application.messages.CrashedBroadcast;
+import bgu.spl.mics.application.messages.TerminatedBroadcast;
+import bgu.spl.mics.application.messages.TickBroadcast;
 
 /**
  * TimeService acts as the global timer for the system, broadcasting TickBroadcast messages
@@ -30,13 +32,16 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
+
         long start = System.currentTimeMillis();
         long time = (this.TickTime/1000)*this.Duration;
         int c = 0;
-        while(time > System.currentTimeMillis()-start){
+        while(time > System.currentTimeMillis()-start){  //+++++++++++++++++++++++++
             if (System.currentTimeMillis()-start % this.TickTime == 0){
                 c = c+1;
+                StatisticalFolder.getInstance().setSystemRuntime(c);
                 sendBroadcast(new TickBroadcast(c));
+
             }
             else {
                 try {
@@ -47,6 +52,7 @@ public class TimeService extends MicroService {
             }
 
         }
-        sendBroadcast(new TerminatedBroadcast()); //צריך ליצור את השידור הזה
+        sendBroadcast(new CrashedBroadcast());
+        sendBroadcast(new TerminatedBroadcast("time")); //צריך ליצור את השידור הזה
     }
 }

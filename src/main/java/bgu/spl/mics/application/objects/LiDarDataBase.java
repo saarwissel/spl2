@@ -24,21 +24,13 @@ public class LiDarDataBase {
      * @return The singleton instance of LiDarDataBase.
      */
 
-    List<StampedCloudPoints> cloudPoints;
+    List<StampedCloudPoints> StumpedCloudPoints;
     public LiDarDataBase(){
-        this.cloudPoints=new ArrayList<>();
+        this.StumpedCloudPoints=new ArrayList<>();
     }
 
-    public List<StampedCloudPoints> getCloudPoints() {
-        return cloudPoints;
-    }
-    public StampedCloudPoints getCordinate(String id){///////+++++++++chack withgal
-        for(StampedCloudPoints t:this.cloudPoints){
-            if(t.getId()==id){
-             return t;
-            }
-        }
-        return null;
+    public List<StampedCloudPoints> getStumpedCloudPoints() {
+        return StumpedCloudPoints;
     }
     private void loadFromFile(String filePath)  {////++++ lookwith gal
         Gson gson = new Gson();
@@ -46,9 +38,8 @@ public class LiDarDataBase {
 
         try (FileReader reader = new FileReader(filePath)) {
             List<StampedCloudPoints> data = gson.fromJson(reader, type);
-            cloudPoints.addAll(data); // טעינת הנתונים לתוך הרשימה
+            StumpedCloudPoints.addAll(data);
         } catch (IOException e) {
-        // טיפול בחריגה, ניתן להדפיס הודעת שגיאה או לרשום ל-Log
         System.err.println("Failed to load file: " + filePath);
         e.printStackTrace(); // הדפסת ה-Stack Trace לצורך Debug
         }

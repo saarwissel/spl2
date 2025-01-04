@@ -1,7 +1,7 @@
 package bgu.spl.mics.application.services;
+import bgu.spl.mics.application.messages.*;
 import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.example.messages.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +30,11 @@ public class LiDarWorkerService extends MicroService {
         this.readyToSend=new ArrayList<>();
 
     }
+    public void clear(List<TrackedObject> trackedObjectList){
+        for(TrackedObject t: trackedObjectList){
+            trackedObjectList.remove(t);
+        }
+    }
 
     /**
      * Initializes the LiDarService.
@@ -42,7 +47,15 @@ public class LiDarWorkerService extends MicroService {
             currentTick = tick.getTick();
         });
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast terminated) -> {
+                if(terminated.getService()=="lidar"){
                     terminate();
+                }
+                if(terminated.getService()=="fusion"){
+                    this.terminate();
+                }
+                if(terminated.getService()=="time"){
+                    this.terminate();
+                }
                 }
         );
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {
@@ -51,20 +64,26 @@ public class LiDarWorkerService extends MicroService {
         );
         subscribeEvent(DetectObjectsEvents.class, (event) ->{//////with gall
             int detectionTime = event.getTime();
-            for (DetectedObject t: event.getDt()){
-                    readyToSend.add((this.LiDarWorkerTracker.maketrack(event,t)));
+            int i =0;
+            int sumT = 0;
+            List<CloudPoint> l;
+            for (DetectedObject t: event.getDt()) {
+                l = (List<CloudPoint>) LiDarDataBase.getInstance("C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\lidar_data.json").getStumpedCloudPoints().get(detectionTime-event.getCameraFreq()).getCpoints().get(i);
+                readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
+                i++;
+                sumT = sumT + readyToSend.size();
+                StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
             }
-            if (currentTick >= detectionTime + this.LiDarWorkerTracker.getFrequency()) {
-
+            if (sumT == LiDarDataBase.getInstance("C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\lidar_data.json").getStumpedCloudPoints().size()) {
+                sendBroadcast(new TerminatedBroadcast("lidar"));
             }
-                List<CloudPoint> cloudPoints = new ArrayList<>();
-                for(CloudPoint c: LiDarDataBase.getInstance("").getCloudPoints().get(0).getCpoints()){
-                    cloudPoints.add(c);
-                }
-                for(CloudPoint t:cloudPoints){
-                    TrackedObjectsEvents
-                }
 
+            if (currentTick >= detectionTime+ this.LiDarWorkerTracker.getFrequency()) {
+                TrackedObjectsEvents e=new TrackedObjectsEvents(detectionTime+LiDarWorkerTracker.getFrequency(),readyToSend,event.getDetectionTime());
+                this.clear(readyToSend);
+                sendEvent(e);
+            }
+            complete(event,true);
             });
     }
 }

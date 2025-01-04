@@ -1,6 +1,6 @@
 package bgu.spl.mics.application.objects;
 
-import bgu.spl.mics.example.messages.DetectObjectsEvents;
+import bgu.spl.mics.application.messages.DetectObjectsEvents;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class LiDarWorkerTracker {
         this.id = id;
         this.frequency = frequency;
         this.TrackObjects = new LinkedList<TrackedObject>();
-        status= Status.DOWN;
+        status= Status.UP;
     }
 
     public int getId() {
@@ -38,10 +38,22 @@ public class LiDarWorkerTracker {
     public int getFrequency() {
         return frequency;
     }
-    public TrackedObject maketrack(DetectObjectsEvents events,DetectedObject t){//+++++++ checkwithgal
-        return new TrackedObject(t.getId(),events.getTime(),t.getDescription(), (List<CloudPoint>) LiDarDataBase.getInstance("C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\lidar_data.json").getCordinate(t.id));
+    public TrackedObject maketrack(DetectObjectsEvents events,DetectedObject t,List<CloudPoint> l){//+++++++ checkwithgal
+        return new TrackedObject(t.getId(),events.getTime(),t.getDescription(),l,events.getDetectionTime());
     }
     public LinkedList<TrackedObject> getTrackObjects() {
         return TrackObjects;
+    }
+
+    public int getStatus(){
+        if(status==Status.UP){
+            return 0;
+        }
+        else if(status==Status.DOWN){
+            return 1;
+        }
+        else{
+            return 2;
+        }
     }
 }

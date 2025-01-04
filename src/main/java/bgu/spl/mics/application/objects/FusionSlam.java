@@ -2,6 +2,9 @@ package bgu.spl.mics.application.objects;
 
 import bgu.spl.mics.MessageBusImpl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Manages the fusion of sensor data for simultaneous localization and mapping (SLAM).
  * Combines data from multiple sensors (e.g., LiDAR, camera) to build and update a global map.
@@ -13,25 +16,49 @@ public class FusionSlam {
             private static final FusionSlam INSTANCE = new FusionSlam();
 
     }
-    LandMark landMark;
-    Pose poses;
+    List<LandMark> landMarks;
+    List<Pose> poses;
+
 
     public FusionSlam() {
-        this.landMark = new LandMark();
-        this.poses = new Pose();
+            this.landMarks = new ArrayList<>();
+            this.poses = new ArrayList<>();
     }
 
-    public LandMark getLandMark() {
-        return landMark;
+    public List<LandMark> getLandMarks() {
+        return landMarks;
     }
 
-    public Pose getPoses() {
+    public List<Pose> getPoses() {
         return poses;
     }
+
     public static synchronized FusionSlam getInstance() {
         return FusionSlamHolder.INSTANCE;
 
     }
+
+    public void check(TrackedObject t, Pose p){
+        if (FusionSlam.getInstance().getLandMarks().size() == 0){
+                FusionSlam.getInstance().getLandMarks().add(new LandMark(t.getId(), t.getDescription(), t.getCloudPoints(), p));
+                StatisticalFolder.getInstance().setNumLandmarks(1);
+            }
+        else {
+                boolean found = false;
+                for (LandMark landMark : FusionSlam.getInstance().getLandMarks()) {
+                    if (landMark.getId().equals(t.getId())) {
+                        landMark.update(t.getCloudPoints());
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    this.landMarks.add(new LandMark(t.getId(), t.getDescription(), t.getCloudPoints(), p));
+                }
+            }
+            StatisticalFolder.getInstance().setNumLandmarks(1);
+    }
+
 }
 
 

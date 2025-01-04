@@ -26,7 +26,4 @@ public class StampedDetectedObjects {
         return Dobjects;
     }
 
-    public void addDetectedObject(DetectedObject detectedObject) {
-        Dobjects.add(detectedObject); // הוספת אובייקט לרשימה
-    }
 }
