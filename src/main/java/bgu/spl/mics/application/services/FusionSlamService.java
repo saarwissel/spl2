@@ -124,8 +124,9 @@ public class FusionSlamService extends MicroService {
                     }
 
                 }
-                complete(pose, true);
+
             }
+            complete(pose, true);
         });
 
     }

@@ -38,7 +38,7 @@ public class LiDarDataBase {
 
         try (FileReader reader = new FileReader(filePath)) {
             List<StampedCloudPoints> data = gson.fromJson(reader, type);
-            StumpedCloudPoints.addAll(data);
+            this.StumpedCloudPoints.addAll(data);
         } catch (IOException e) {
         System.err.println("Failed to load file: " + filePath);
         e.printStackTrace(); // הדפסת ה-Stack Trace לצורך Debug

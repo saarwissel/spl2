@@ -72,7 +72,7 @@ public class GurionRockRunner {
 
             // רישום כל השירותים ל-MessageBus
             MessageBusImpl bus = MessageBusImpl.getInstance();
-            logger.info("Registering MicroServices...");
+            /*logger.info("Registering MicroServices...");
             bus.register(lidarService1);
             logger.info("Registered LiDAR Service 1");
             bus.register(lidarService2);
@@ -87,6 +87,7 @@ public class GurionRockRunner {
             logger.info("Registered FusionSlam Service");
             bus.register(timeService);
             logger.info("Registered Time Service");
+            */
 
             // יצירת Threads לכל השירותים
             List<Thread> threads = new ArrayList<>();

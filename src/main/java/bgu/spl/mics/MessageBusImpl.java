@@ -44,8 +44,9 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		this.eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>());
-		this.eventSubscribers.put(type,m);
+		synchronized (eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>())) {
+			eventSubscribers.get(type).add(m);
+		}
 
 
 	}
@@ -57,20 +58,30 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void complete(Event<T> e, T result) {
-		micrtFuture.get(eActuall.get(e)).resolve(result);
-		micrtComplete.put(e, eActuall.get(e));//++++++++++++
-		eActuall.remove(e, eActuall.get(e));
-		micrtFuture.remove(eActuall.get(e), micrtFuture.get(eActuall.get(e)));
-
-
+		if(eActuall.get(e) != null && micrtFuture.get(eActuall.get(e)) != null)
+		{
+			synchronized (micrtFuture.get(eActuall.get(e)))
+			{
+				micrtFuture.get(eActuall.get(e)).resolve(result);
+				micrtComplete.put(e, eActuall.get(e));//++++++++++++
+				eActuall.remove(e, eActuall.get(e));
+				micrtFuture.remove(eActuall.get(e), micrtFuture.get(eActuall.get(e)));
+			}
+		}
 	}
 
 	@Override
 	public void sendBroadcast(Broadcast b) {
-		broadcastSubscribers.get(b.getClass()).forEach(m -> {
-			numMicro.get(m).add(b);
-		});
+		LinkedBlockingQueue<MicroService> subs = broadcastSubscribers.get(b.getClass());
+		if (subs != null) {
+			subs.forEach(m -> {
+				synchronized (numMicro.get(m)) {
+					numMicro.get(m).add(b);
+					numMicro.get(m).notifyAll();
+				}
+			});
 
+		}
 	}
 
 
@@ -84,7 +95,12 @@ public class MessageBusImpl implements MessageBus {
 		{
 			try {
 				MicroService m = eventSubscribers.get(e.getClass()).take();
-				numMicro.get(m).add(e);
+				synchronized (numMicro.get(m))
+				{
+					numMicro.get(m).add(e);
+					numMicro.get(m).notifyAll();
+
+				}
 				eventSubscribers.get(e.getClass()).add(m);
 				eActuall.put(e, m);
 				Future<T> future = new Future<>();
@@ -104,29 +120,19 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public void unregister(MicroService m) {
-		if(m == null)
-		{
+		if (m == null) {
 			return;
 		}
-		else {
-				synchronized (this.lock) {
+
+		synchronized (eventSubscribers) {
+			synchronized (broadcastSubscribers) {
 				numMicro.remove(m);
-
-				eventSubscribers.forEach((k, v) -> {
-					if (v.contains(m)) {
-						v.remove(m);
-					}
-				});
-				broadcastSubscribers.forEach((k, v) -> {
-					if (v.contains(m)) {
-						v.remove(m);
-					}
-				});
-				//++++++change the microservis that hundlle evant if it there is one
-
+				eventSubscribers.forEach((k, v) -> v.remove(m));
+				broadcastSubscribers.forEach((k, v) -> v.remove(m));
 			}
 		}
 	}
+
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
