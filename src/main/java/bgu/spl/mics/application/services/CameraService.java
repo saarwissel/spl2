@@ -46,6 +46,16 @@ public class CameraService extends MicroService {
         int currentTick = tick.getTick();
         int addStat = camera.getStampedDetectedObjects().size();
         for(StampedDetectedObjects s:camera.getStampedDetectedObjects()){
+            for(DetectedObject d:s.getDobjects()){
+                if(d.getId()=="ERROR"){
+                    if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
+                        StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+                    }
+                    CrashedBroadcast e=new CrashedBroadcast();
+                    camera.setStatus(2);
+                    sendBroadcast(e);
+                }
+            }
             if(s.getTime()+camera.getFrequency()==currentTick){
                 DetectObjectsEvents e=new DetectObjectsEvents(currentTick,this.camera.getFrequency(),(List<DetectedObject>) s,s.getTime());
                 StatisticalFolder.getInstance().setNumDetectedObjects(addStat); // סטטיסטיקה סינגלטון סטטיסטי  נוסיף addStat
@@ -62,7 +72,6 @@ public class CameraService extends MicroService {
     }
     );
     subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {
-        camera.setStatus(2);
         terminate();
     }
     );

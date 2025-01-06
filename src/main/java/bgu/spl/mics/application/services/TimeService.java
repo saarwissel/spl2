@@ -20,10 +20,12 @@ public class TimeService extends MicroService {
      */
     int TickTime; //  מגדיר כמה זמן זו יחידת זמן במיליסקונדס
     int Duration; // כמה יחידות זמן יש לנו
+    boolean crashed;
     public TimeService(int TickTime, int Duration) {
         super("timeGuy",100);
         this.TickTime = TickTime;
         this.Duration = Duration;
+        this.crashed=false;
     }
 
     /**
@@ -35,8 +37,11 @@ public class TimeService extends MicroService {
         long startTime = System.currentTimeMillis();
         long totalTime = this.TickTime * this.Duration;
         int tickCounter = 0;
-
-        while (System.currentTimeMillis() - startTime < totalTime) {
+        subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast c) -> {
+            this.crashed = true;
+            terminate();
+        });
+        while (System.currentTimeMillis() - startTime < totalTime && !this.crashed) {
             long elapsedTime = System.currentTimeMillis() - startTime;
             long remTime = Math.max(0, this.TickTime - (elapsedTime % this.TickTime)); // מניעת ערכים שליליים
 
@@ -50,9 +55,12 @@ public class TimeService extends MicroService {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        }
 
-        sendBroadcast(new TerminatedBroadcast("time"));
+        }
+        if (!this.crashed) {
+            sendBroadcast(new TerminatedBroadcast("time"));
+            this.terminate();
+        }
     }
 
 }

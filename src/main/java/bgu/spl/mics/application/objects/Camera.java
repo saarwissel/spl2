@@ -4,15 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import bgu.spl.mics.application.objects.StampedDetectedObjects;
-/**
- * Represents a camera sensor on the robot.
- * Responsible for detecting objects in the environment.
- */
-enum CameraStatus {
-    UP,
-    DOWN,
-    ERROR
-}
+
 public class Camera {
     // TODO: Define fields and methods.
     private int id; // מזהה המצלמה

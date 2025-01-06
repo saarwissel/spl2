@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * FusionSlamService integrates data from multiple sensors to build and update
  * the robot's global map.
- * 
+ *
  * This service receives TrackedObjectsEvents from LiDAR workers and PoseEvents from the PoseService,
  * transforming and updating the map with new landmarks.
  */
@@ -22,7 +22,7 @@ public class FusionSlamService extends MicroService {
     boolean isPoseT;
     List<TrackedObject> waitingList;
 
-        /**
+    /**
      * Constructor for FusionSlamService.
      *
      * @param fusionSlam The FusionSLAM object responsible for managing the global map.
@@ -44,25 +44,32 @@ public class FusionSlamService extends MicroService {
         subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast terminated) -> {
 
                     if (terminated.getService() == "fusion") {
+                        StatisticalFolder.getInstance().setSystemRuntime(FusionSlam.getInstance().getPoses().size());
                         this.terminate();
                     }
                     if (terminated.getService() == "time") {
+                        if(StatisticalFolder.getInstance().getSystemRuntime().get() == 0)
+                        {
+                            StatisticalFolder.getInstance().setSystemRuntime(FusionSlam.getInstance().getPoses().size());
+                        }
                         this.terminate();
                     }
                     if (terminated.getService() == "lidar") {
                         this.isLidarT = true;
                         if(this.isPoseT == true)
                         {
+                            sendBroadcast(new TerminatedBroadcast("fusion"));
                             this.terminate();
                         }
                     }
                     if (terminated.getService() == "pose") {
                         this.isPoseT = true;
                         if(this.isLidarT == true)
-                         {
+                        {
+                            sendBroadcast(new TerminatedBroadcast("fusion"));
                             this.terminate();
-                         }
-            }
+                        }
+                    }
                 }
 
         );
@@ -77,13 +84,13 @@ public class FusionSlamService extends MicroService {
                 this.waitingList.addAll(t.getTrackedObjects());
             }
             else if (FusionSlam.getInstance().getLandMarks().size() == 0){
-                      for (TrackedObject trackedObject : t.getTrackedObjects()) {
-                        FusionSlam.getInstance().getLandMarks().add(new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime())));
-                    }
-                    int sumLandMarks = FusionSlam.getInstance().getLandMarks().size();
-                    StatisticalFolder.getInstance().setNumLandmarks(sumLandMarks);
-                    complete(t, true);
+                for (TrackedObject trackedObject : t.getTrackedObjects()) {
+                    FusionSlam.getInstance().getLandMarks().add(new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime())));
                 }
+                int sumLandMarks = FusionSlam.getInstance().getLandMarks().size();
+                StatisticalFolder.getInstance().setNumLandmarks(sumLandMarks);
+                complete(t, true);
+            }
 
             else {
                 for (TrackedObject trackedObject : t.getTrackedObjects()) {
@@ -117,8 +124,8 @@ public class FusionSlamService extends MicroService {
                     }
 
                 }
-            complete(pose, true);
-        }
+                complete(pose, true);
+            }
         });
 
     }

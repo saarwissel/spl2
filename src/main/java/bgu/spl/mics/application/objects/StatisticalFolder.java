@@ -1,5 +1,7 @@
 package bgu.spl.mics.application.objects;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Holds statistical information about the system's operation.
  * This class aggregates metrics such as the runtime of the system,
@@ -11,48 +13,52 @@ public class StatisticalFolder {
         private static final StatisticalFolder INSTANCE = new StatisticalFolder();
 
     }
-    int systemRuntime;
-    int numDetectedObjects;
-    int numTrackedObjects;
-    int numLandmarks;
+    AtomicInteger systemRuntime;
+    AtomicInteger numDetectedObjects;
+    AtomicInteger numTrackedObjects;
+    AtomicInteger numLandmarks;
 
     public StatisticalFolder() {
-        this.systemRuntime = 0;
-        this.numDetectedObjects = 0;
-        this.numTrackedObjects = 0;
-        this.numLandmarks = 0;
+        this.systemRuntime = new AtomicInteger(0);
+        this.numDetectedObjects =  new AtomicInteger(0);
+        this.numTrackedObjects = new AtomicInteger(0);
+        this.numLandmarks = new AtomicInteger(0);
     }
 
-    public int getNumDetectedObjects() {
+    public AtomicInteger getNumDetectedObjects() {
         return numDetectedObjects;
     }
 
-    public int getNumLandmarks() {
+    public AtomicInteger getNumLandmarks() {
         return numLandmarks;
     }
 
-    public int getNumTrackedObjects() {
+    public AtomicInteger getNumTrackedObjects() {
         return numTrackedObjects;
     }
 
-    public int getSystemRuntime() {
+    public AtomicInteger getSystemRuntime() {
         return systemRuntime;
     }
 
     public void setNumDetectedObjects(int numDetectedObjects) {
-        this.numDetectedObjects = this.numTrackedObjects+numDetectedObjects;
+
+        this.numDetectedObjects.addAndGet(numDetectedObjects);
     }
 
     public void setNumLandmarks(int numLandmarks) {
-        this.numLandmarks = this.numLandmarks+numLandmarks;
+
+        this.numLandmarks.addAndGet(numLandmarks);
     }
 
     public void setNumTrackedObjects(int numTrackedObjects) {
-        this.numTrackedObjects = this.numTrackedObjects+numTrackedObjects;
+
+        this.numTrackedObjects.addAndGet(numTrackedObjects);
     }
 
     public void setSystemRuntime(int systemRuntime) {
-        this.systemRuntime = systemRuntime;
+
+        this.systemRuntime.set(systemRuntime);
     }
 
     public static synchronized StatisticalFolder getInstance() {
@@ -60,4 +66,3 @@ public class StatisticalFolder {
 
     }
 }
-

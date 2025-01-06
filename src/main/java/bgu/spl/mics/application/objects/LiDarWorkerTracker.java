@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LiDarWorkerTracker {
 
+    public Object setStatus;
+
     enum Status {
         UP,
         DOWN,
@@ -55,6 +57,17 @@ public class LiDarWorkerTracker {
         }
         else{
             return 2;
+        }
+    }
+    public void setStatus(int status){
+        if(status==0){
+            this.status=Status.UP;
+        }
+        else if(status==1){
+            this.status=Status.DOWN;
+        }
+        else{
+            this.status=Status.ERROR;
         }
     }
 }

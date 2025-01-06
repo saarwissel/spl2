@@ -1,3 +1,4 @@
+
 package bgu.spl.mics;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -15,6 +16,7 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<MicroService, Future> micrtFuture;
 	private ConcurrentHashMap<Event, MicroService> micrtComplete;//++++++++++++
 	private ConcurrentHashMap<Event, MicroService> eActuall;
+	private Object lock;
 
 	private static class SingletonHolder {
 		private static final MessageBusImpl INSTANCE = new MessageBusImpl();
@@ -27,6 +29,7 @@ public class MessageBusImpl implements MessageBus {
 		this.micrtFuture = new ConcurrentHashMap<>();
 		this.micrtComplete = new ConcurrentHashMap<>();//++++++++++++
 		this.eActuall = new ConcurrentHashMap<>();
+		this.lock=new Object();
 
 	}
 
@@ -42,6 +45,8 @@ public class MessageBusImpl implements MessageBus {
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
 		this.eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>());
+		this.eventSubscribers.put(type,m);
+
 
 	}
 
@@ -71,16 +76,23 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
-		try {
-			MicroService m = eventSubscribers.get(e.getClass()).take();
-			numMicro.get(m).add(e);
-			eventSubscribers.get(e.getClass()).add(m);
-			eActuall.put(e, m);
-			Future<T> future = new Future<>();
-			micrtFuture.put(m, future);
-			return future;
-		} catch (InterruptedException e1) {
+		if(e == null)
+		{
 			return null;
+		}
+		synchronized (this.lock)
+		{
+			try {
+				MicroService m = eventSubscribers.get(e.getClass()).take();
+				numMicro.get(m).add(e);
+				eventSubscribers.get(e.getClass()).add(m);
+				eActuall.put(e, m);
+				Future<T> future = new Future<>();
+				micrtFuture.put(m, future);
+				return future;
+			} catch (InterruptedException e1) {
+				return null;
+			}
 		}
 	}
 
@@ -92,33 +104,46 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public void unregister(MicroService m) {
-		numMicro.remove(m);
-		eventSubscribers.forEach((k, v) -> {
-			if (v.contains(m)) {
-				v.remove(m);
-			}
-		});
-		broadcastSubscribers.forEach((k, v) -> {
-			if (v.contains(m)) {
-				v.remove(m);
-			}
-		});
-		//++++++change the microservis that hundlle evant if it there is one
+		if(m == null)
+		{
+			return;
+		}
+		else {
+				synchronized (this.lock) {
+				numMicro.remove(m);
 
+				eventSubscribers.forEach((k, v) -> {
+					if (v.contains(m)) {
+						v.remove(m);
+					}
+				});
+				broadcastSubscribers.forEach((k, v) -> {
+					if (v.contains(m)) {
+						v.remove(m);
+					}
+				});
+				//++++++change the microservis that hundlle evant if it there is one
+
+			}
+		}
 	}
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
+		if(m==null){
+			throw new InterruptedException("MicroService is null.");
+		}
+		else{
 		LinkedBlockingQueue<Message> queue = numMicro.get(m);
 		if (queue == null) {
 			throw new IllegalStateException("MicroService " + m.getName() + " is not registered.");
 		}
-
 		synchronized (queue) { // ודא סינכרון על התור
 			while (queue.isEmpty()) {
 				queue.wait(); // ממתין עד שההודעה תגיע
 			}
 			return queue.take(); // מחזיר הודעה
+		}
 		}
 	}
 
@@ -127,3 +152,4 @@ public class MessageBusImpl implements MessageBus {
 
 	}
 }
+

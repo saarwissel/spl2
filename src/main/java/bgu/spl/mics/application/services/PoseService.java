@@ -33,9 +33,9 @@ public class PoseService extends MicroService {
      */
     @Override
     protected void initialize() {
-        String filePath = "C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\pose_data.json";
+        //String filePath = "C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\pose_data.json";
 
-        List<Pose> poseList = PoseLoader.loadPoses(filePath);
+        //List<Pose> poseList = PoseLoader.loadPoses(filePath);
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {
                     gpsimu.setStatus(1);
                     terminate();

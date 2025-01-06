@@ -4,7 +4,7 @@ import bgu.spl.mics.MessageBusImpl;
 import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.application.services.*;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,7 +14,6 @@ public class GurionRockRunner {
     private static final Logger logger = Logger.getLogger(GurionRockRunner.class.getName());
 
     public static void main(String[] args) {
-        // בדיקת ארגומנטים
         if (args.length == 0) {
             logger.severe("Error: No configuration file path provided.");
             System.err.println("Please provide a configuration file path.");
@@ -22,67 +21,98 @@ public class GurionRockRunner {
         }
 
         String configPath = args[0];
-
-        // בדיקה שהנתיב הוא תקין וקיים
-        File configDirectory = new File(configPath);
-        if (!configDirectory.exists() || !configDirectory.isDirectory()) {
-            logger.severe("Error: Provided path is not a valid directory: " + configPath);
-            System.err.println("Invalid configuration directory: " + configPath);
-            return;
-        }
+        String lidarDataPath = configPath.replace("configuration_file.json", "lidar_data.json");
+        String poseDataPath = configPath.replace("configuration_file.json", "pose_data.json");
 
         logger.info("Initializing system components...");
         try {
-            // טעינת נתוני LiDAR ו-Pose
-            LiDarDataBase lidarDataBase = LiDarDataBase.getInstance(configPath + "/lidar_data.json");
-            List<Pose> poses = PoseLoader.loadPoses(configPath + "/pose_data.json");
-            if (poses == null || poses.isEmpty()) {
-                logger.severe("Error: Failed to load pose data from: " + configPath + "/pose_data.json");
+            // אתחול LiDarDataBase
+            try {
+                LiDarDataBase.initialize(lidarDataPath);
+                logger.info("LiDarDataBase initialized successfully. Loaded LiDAR data: " +
+                        LiDarDataBase.getInstance().getStumpedCloudPoints().size());
+            } catch (Exception e) {
+                logger.severe("Failed to initialize LiDarDataBase: " + e.getMessage());
                 return;
             }
 
+            // אתחול GPSIMU עם נתוני Pose
             GPSIMU gpsimu = new GPSIMU(0);
+            List<Pose> poses = PoseLoader.loadPoses(poseDataPath);
+            if (poses == null || poses.isEmpty()) {
+                logger.severe("Error: No poses loaded from " + poseDataPath);
+                return;
+            }
             gpsimu.getPoseList().addAll(poses);
+            logger.info("Loaded poses: " + poses.size());
 
-            // יצירת אובייקטים ומצלמות
-            Camera camera = new Camera(1, 2);
-            LiDarWorkerTracker lidarWorkerTracker = new LiDarWorkerTracker(1, 2);
+            // יצירת LiDAR Worker Services
+            LiDarWorkerTracker lidarTracker1 = new LiDarWorkerTracker(1, 4);
+            LiDarWorkerTracker lidarTracker2 = new LiDarWorkerTracker(2, 3);
 
-            // יצירת שירותים
-            CameraService cameraService = new CameraService(camera);
-            LiDarWorkerService lidarService = new LiDarWorkerService(lidarWorkerTracker);
-            PoseService poseService = new PoseService(gpsimu);
+            LiDarWorkerService lidarService1 = new LiDarWorkerService(lidarTracker1);
+            LiDarWorkerService lidarService2 = new LiDarWorkerService(lidarTracker2);
+
+            // יצירת Camera Services
+            Camera camera1 = new Camera(1, 2);
+            Camera camera2 = new Camera(2, 1);
+
+            CameraService cameraService1 = new CameraService(camera1);
+            CameraService cameraService2 = new CameraService(camera2);
+
+            // יצירת FusionSlam Services
             FusionSlam fusionSlam = FusionSlam.getInstance();
             FusionSlamService fusionSlamService = new FusionSlamService(fusionSlam);
-            TimeService timeService = new TimeService(1000, 50); // זמן טיק ודורציה לדוגמה
 
-            // אתחול שירותים
-            logger.info("Starting services...");
-            Thread cameraThread = new Thread(cameraService);
-            Thread lidarThread = new Thread(lidarService);
-            Thread poseThread = new Thread(poseService);
-            Thread fusionThread = new Thread(fusionSlamService);
-            Thread timeThread = new Thread(timeService);
+            // יצירת Pose Service
+            PoseService poseService = new PoseService(gpsimu);
 
+            // יצירת Time Service
+            TimeService timeService = new TimeService(1000, 50); // 50 טיקים לדוגמה
+
+            // רישום כל השירותים ל-MessageBus
             MessageBusImpl bus = MessageBusImpl.getInstance();
-            bus.register(cameraService);
-            bus.register(lidarService);
+            logger.info("Registering MicroServices...");
+            bus.register(lidarService1);
+            logger.info("Registered LiDAR Service 1");
+            bus.register(lidarService2);
+            logger.info("Registered LiDAR Service 2");
+            bus.register(cameraService1);
+            logger.info("Registered Camera Service 1");
+            bus.register(cameraService2);
+            logger.info("Registered Camera Service 2");
             bus.register(poseService);
+            logger.info("Registered Pose Service");
             bus.register(fusionSlamService);
+            logger.info("Registered FusionSlam Service");
             bus.register(timeService);
+            logger.info("Registered Time Service");
 
-            // נפעיל את השירותים הרצויים
-            cameraThread.start();
-            lidarThread.start();
-            poseThread.start();
-            fusionThread.start();
-            timeThread.start();
+            // יצירת Threads לכל השירותים
+            List<Thread> threads = new ArrayList<>();
+            threads.add(new Thread(lidarService1));
+            threads.add(new Thread(lidarService2));
+            threads.add(new Thread(cameraService1));
+            threads.add(new Thread(cameraService2));
+            threads.add(new Thread(poseService));
+            threads.add(new Thread(fusionSlamService));
+            threads.add(new Thread(timeService));
 
-            // סיום התוכנית
-            timeThread.join();
+            // הפעלת כל השירותים
+            logger.info("Starting threads...");
+            for (Thread thread : threads) {
+                logger.info("Starting thread: " + thread.getName());
+                thread.start();
+            }
+
+            // המתנה לסיום כל השירותים
+            logger.info("Waiting for threads to complete...");
+            for (Thread thread : threads) {
+                thread.join();
+                logger.info("Thread " + thread.getName() + " completed. State: " + thread.getState());
+            }
+
             logger.info("Simulation completed successfully.");
-        } catch (InterruptedException e) {
-            logger.log(Level.SEVERE, "Simulation interrupted: ", e);
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Unexpected error during simulation: ", e);
         }

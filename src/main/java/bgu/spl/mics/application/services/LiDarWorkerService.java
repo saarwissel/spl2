@@ -66,15 +66,28 @@ public class LiDarWorkerService extends MicroService {
             int detectionTime = event.getTime();
             int i =0;
             int sumT = 0;
+            StampedCloudPoints s;
             List<CloudPoint> l;
             for (DetectedObject t: event.getDt()) {
-                l = (List<CloudPoint>) LiDarDataBase.getInstance("C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\lidar_data.json").getStumpedCloudPoints().get(detectionTime-event.getCameraFreq()).getCpoints().get(i);
+                LiDarDataBase lidarDatabase = LiDarDataBase.getInstance();//+++++++changed
+                s = lidarDatabase.getStumpedCloudPoints().get(detectionTime - event.getCameraFreq());
+                if(s.getId().equals("ERROR")){
+                    if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
+                        StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+
+                    }
+                    CrashedBroadcast e=new CrashedBroadcast();
+                    this.LiDarWorkerTracker.setStatus(2);
+                    sendBroadcast(e);
+
+                }
+                l= (List<CloudPoint>) s.getCpoints().get(i);
                 readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
                 i++;
                 sumT = sumT + readyToSend.size();
                 StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
             }
-            if (sumT == LiDarDataBase.getInstance("C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\lidar_data.json").getStumpedCloudPoints().size()) {
+            if (sumT == LiDarDataBase.getInstance().getStumpedCloudPoints().size()) {
                 sendBroadcast(new TerminatedBroadcast("lidar"));
             }
 

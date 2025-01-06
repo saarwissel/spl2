@@ -32,7 +32,7 @@ public class LiDarDataBase {
     public List<StampedCloudPoints> getStumpedCloudPoints() {
         return StumpedCloudPoints;
     }
-    private void loadFromFile(String filePath)  {////++++ lookwith gal
+    private void loadFromFile(String filePath)  {////++++ changed
         Gson gson = new Gson();
         Type type = new TypeToken<List<StampedCloudPoints>>() {}.getType();
 
@@ -44,15 +44,18 @@ public class LiDarDataBase {
         e.printStackTrace(); // הדפסת ה-Stack Trace לצורך Debug
         }
     }
-
-    public static LiDarDataBase getInstance(String filePath) {///++++check with gall
-        if (SingletonHolder.INSTANCE == null) {
-            SingletonHolder.INSTANCE = new LiDarDataBase();
-            SingletonHolder.INSTANCE.loadFromFile(filePath); // טעינת קובץ JSON
-        }
+    public static void initialize(String filePath) {
+        SingletonHolder.INSTANCE.loadFromFile(filePath);
+    }
+    public static LiDarDataBase getInstance() {
         return SingletonHolder.INSTANCE;
     }
+    public static LiDarDataBase getInstance(String filePath) {
+        initialize(filePath);
+        return SingletonHolder.INSTANCE;
+    }
+
     private static class SingletonHolder {
-        private static  LiDarDataBase INSTANCE = new LiDarDataBase();
+        private static final LiDarDataBase INSTANCE = new LiDarDataBase();
     }
 }
