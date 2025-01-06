@@ -16,15 +16,18 @@ public class CameraUploader {
      * @param filePath Path to the JSON file.
      * @return A map of camera IDs to their respective lists of CameraData.
      */
-    public static Map<String, List<StampedDetectedObjects>>loadCameraData(String filePath) {
-        try (FileReader reader = new FileReader(filePath)) {
-            Gson gson = new Gson();
-            Type mapType = new TypeToken<Map<String, List<StampedDetectedObjects>>>() {}.getType();
-            return gson.fromJson(reader, mapType);
-        } catch (IOException e) {
-            System.err.println("Failed to load camera data from: " + filePath + ". Error: " + e.getMessage());
-            return null;
+        public static Map<String, List<List<StampedDetectedObjects>>> loadCameraData(String filePath) {
+            try (FileReader reader = new FileReader(filePath)) {
+                Gson gson = new Gson();
+                // התאמת סוג הנתונים למערך של מערכים
+                Type type = new TypeToken<Map<String, List<List<StampedDetectedObjects>>>>() {}.getType();
+                return gson.fromJson(reader, type);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         }
     }
-}
+
+
 

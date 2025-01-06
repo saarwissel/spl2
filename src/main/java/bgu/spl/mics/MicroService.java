@@ -104,7 +104,7 @@ public abstract class MicroService extends LinkedBlockingQueue<MicroService> imp
      */
     protected final <T> Future<T> sendEvent(Event<T> e) {
         Future f= MessageBusImpl.getInstance().sendEvent(e);
-        if (f.result==null)
+        if (f==null)
             return null;
         return f;
     }

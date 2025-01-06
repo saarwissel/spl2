@@ -3,6 +3,8 @@ package bgu.spl.mics;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 /**
  * The {@link MessageBusImpl class is the implementation of the MessageBus interface.
  * Write your implementation here!
@@ -17,6 +19,7 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<Event, MicroService> micrtComplete;//++++++++++++
 	private ConcurrentHashMap<Event, MicroService> eActuall;
 	private Object lock;
+	ReentrantReadWriteLock locker=new ReentrantReadWriteLock();
 
 	private static class SingletonHolder {
 		private static final MessageBusImpl INSTANCE = new MessageBusImpl();
@@ -75,10 +78,14 @@ public class MessageBusImpl implements MessageBus {
 		LinkedBlockingQueue<MicroService> subs = broadcastSubscribers.get(b.getClass());
 		if (subs != null) {
 			subs.forEach(m -> {
-				synchronized (numMicro.get(m)) {
-					numMicro.get(m).add(b);
-					numMicro.get(m).notifyAll();
+				if(numMicro.get(m) != null && b != null)
+				{
+					synchronized (numMicro.get(m)) {
+						numMicro.get(m).add(b);
+						numMicro.get(m).notifyAll();
+					}
 				}
+
 			});
 
 		}
@@ -87,29 +94,43 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
+
+
 		if(e == null)
 		{
 			return null;
 		}
-		synchronized (this.lock)
+		synchronized (eventSubscribers)
 		{
 			try {
-				MicroService m = eventSubscribers.get(e.getClass()).take();
-				synchronized (numMicro.get(m))
+				while(this.eventSubscribers == null)
 				{
-					numMicro.get(m).add(e);
-					numMicro.get(m).notifyAll();
+					this.wait();
+				}
+				this.notify();
+
+				MicroService m = eventSubscribers.get(e.getClass()).poll();
+				if(m != null) {
+					synchronized (numMicro.get(m)) {
+						numMicro.get(m).add(e);
+						numMicro.get(m).notifyAll();
+
+					}
+					eventSubscribers.get(e.getClass()).add(m);
+					eActuall.put(e, m);
+					Future<T> future = new Future<>();
+					micrtFuture.put(m, future);
+					return future;
 
 				}
-				eventSubscribers.get(e.getClass()).add(m);
-				eActuall.put(e, m);
-				Future<T> future = new Future<>();
-				micrtFuture.put(m, future);
-				return future;
 			} catch (InterruptedException e1) {
 				return null;
 			}
+
+			return null;
+
 		}
+
 	}
 
 	@Override
