@@ -4,6 +4,7 @@ import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.MicroService;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -30,9 +31,15 @@ public class LiDarWorkerService extends MicroService {
         this.readyToSend=new ArrayList<>();
 
     }
-    public void clear(List<TrackedObject> trackedObjectList){
-        for(TrackedObject t: trackedObjectList){
-            trackedObjectList.remove(t);
+    public void clear(List<TrackedObject> trackedObjectList) {
+        if (trackedObjectList == null) {
+            return;
+        }
+        // Use an iterator to safely remove elements
+        Iterator<TrackedObject> iterator = trackedObjectList.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            iterator.remove();
         }
     }
 
@@ -68,10 +75,10 @@ public class LiDarWorkerService extends MicroService {
             int i =0;
             int sumT = 0;
             StampedCloudPoints s;
-            List<CloudPoint> l;
-            for (DetectedObject t: event.getDt()) {
-                System.out.println("flag 2");
+            List<List<Double>> thecloud; // Specify the type as List<List<Double>>
 
+            //List<> thecloud;
+            for (DetectedObject t: event.getDt()) {
                 LiDarDataBase lidarDatabase = LiDarDataBase.getInstance();
                 if(detectionTime - event.getCameraFreq() < lidarDatabase.getStumpedCloudPoints().size())
                 {
@@ -88,11 +95,8 @@ public class LiDarWorkerService extends MicroService {
 
                 }
                         else {
-                         System.out.println("flag 3");
-
-                         l = s.getCpoints(i);
-
-                            readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
+                            thecloud = s.getCloudPoints(); // Use the correct type
+                            readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, thecloud)));
                          i++;
                             sumT = sumT + readyToSend.size();
                             StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
@@ -105,8 +109,8 @@ public class LiDarWorkerService extends MicroService {
                 if (currentTick >= detectionTime + this.LiDarWorkerTracker.getFrequency()) {
                     System.out.println("flag 4");
 
-                    TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend, event.getDetectionTime());
-                    this.clear(readyToSend);
+                    TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend);
+                   this.clear(readyToSend);
                     sendEvent(e);
                 }
             }

@@ -35,7 +35,7 @@ public class GurionRockRunner {
             logger.info("Configuration loaded successfully.");
 
             // Load LiDAR Data
-            LiDarDataBase.initialize(config.Lidars.lidars_data_path);
+            LiDarDataBase.getInstance(config.Lidars.lidars_data_path);
             List<StampedCloudPoints> lidarData = LiDarDataBase.getInstance().getStumpedCloudPoints();
             if (lidarData == null || lidarData.isEmpty()) {
                 logger.severe("LiDAR data is null or empty.");

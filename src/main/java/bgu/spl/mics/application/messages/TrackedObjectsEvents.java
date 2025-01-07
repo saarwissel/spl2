@@ -10,7 +10,7 @@ public class TrackedObjectsEvents implements Event {
     int detectionTime;
     List<TrackedObject> TO;
 
-    public TrackedObjectsEvents(int time, List<TrackedObject> TO, int detectionTime) {
+    public TrackedObjectsEvents(int time, List<TrackedObject> TO) {
         this.time = time;
         this.TO=TO;
         this.detectionTime = detectionTime;

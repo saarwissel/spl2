@@ -2,6 +2,7 @@ package bgu.spl.mics.application.objects;
 
 import bgu.spl.mics.application.messages.DetectObjectsEvents;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -42,8 +43,22 @@ public class LiDarWorkerTracker {
     public int getFrequency() {
         return frequency;
     }
-    public TrackedObject maketrack(DetectObjectsEvents events,DetectedObject t,List<CloudPoint> l){//+++++++ checkwithgal
-        return new TrackedObject(t.getId(),events.getTime(),t.getDescription(),l,events.getDetectionTime());
+
+
+    public TrackedObject maketrack(DetectObjectsEvents events,DetectedObject t,List<List<Double>> thecloud){//+++++++ checkwithgal
+        // Convert List<List<Double>> to List<CloudPoint>
+        List<CloudPoint> cloudPoints = new ArrayList<>();
+
+        for (List<Double> point : thecloud) {
+            if (point.size() >= 2) { // Ensure the sublist has at least two elements
+                double x = point.get(0);
+                double y = point.get(1);
+                cloudPoints.add(new CloudPoint(x, y));
+            }
+        }
+
+        // Create and return a new TrackedObject using the converted cloudPoints list
+        return new TrackedObject(t.getId(), events.getTime(), t.getDescription(), cloudPoints, events.getDetectionTime());
     }
     public ConcurrentLinkedQueue<TrackedObject> getTrackObjects() {
         return TrackObjects;
