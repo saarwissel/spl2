@@ -1,8 +1,6 @@
 package bgu.spl.mics.application.objects;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+
 import bgu.spl.mics.application.objects.StampedDetectedObjects;
 
 public class Camera {
@@ -10,7 +8,7 @@ public class Camera {
     private int id; // מזהה המצלמה
     private int frequency; // פרק הזמן לשליחת אירועים
     private CameraStatus status; // סטטוס המצלמה
-    private LinkedList<StampedDetectedObjects> Tobjects; // רשימת אובייקטים שזוהו
+    private List<StampedDetectedObjects> Tobjects; // רשימת אובייקטים שזוהו
 
 
 
@@ -18,7 +16,7 @@ public class Camera {
         this.id = id;
         this.frequency = frequency;
         this.status = CameraStatus.DOWN;
-        this.Tobjects = new LinkedList<StampedDetectedObjects>();
+        this.Tobjects = new ArrayList<>();
 
     }
 
@@ -49,7 +47,7 @@ public class Camera {
         }
     }
 
-    public LinkedList<StampedDetectedObjects> getStampedDetectedObjects() {
+    public List<StampedDetectedObjects> getStampedDetectedObjects() {
         return Tobjects;
     }
 

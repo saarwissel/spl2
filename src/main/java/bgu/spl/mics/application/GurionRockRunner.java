@@ -51,7 +51,6 @@ public class GurionRockRunner {
                 logger.severe("Failed to load pose data.");
                 return;
             }
-            System.out.println("הגענו עד הלום ");
 
             logger.info("Pose data loaded successfully. Loaded poses: " + poses.size());
 
@@ -92,7 +91,7 @@ public class GurionRockRunner {
 
             // Start Threads
             logger.info("Starting all services...");
-            System.out.println("הגענו עד הלום ");
+
 
             for (Thread thread : threads) {
                 thread.start();
@@ -101,7 +100,6 @@ public class GurionRockRunner {
             Thread t = new Thread(timeService);
             threads.add(t);
             t.start();
-
             // Wait for Threads to Complete
             logger.info("Waiting for services to complete...");
             for (Thread thread : threads) {

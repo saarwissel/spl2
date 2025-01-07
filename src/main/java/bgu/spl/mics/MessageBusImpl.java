@@ -15,8 +15,7 @@ public class MessageBusImpl implements MessageBus {
 	private ConcurrentHashMap<Class<? extends Event>, LinkedBlockingQueue<MicroService>> eventSubscribers;
 	private ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
 	private ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> numMicro;
-	private ConcurrentHashMap<MicroService, Future> micrtFuture;
-	private ConcurrentHashMap<Event, MicroService> micrtComplete;//++++++++++++
+	private ConcurrentHashMap<Event,Future> FutureComplete;//++++++++++++
 	private ConcurrentHashMap<Event, MicroService> eActuall;
 	private Object lock;
 	ReentrantReadWriteLock locker=new ReentrantReadWriteLock();
@@ -29,8 +28,7 @@ public class MessageBusImpl implements MessageBus {
 		this.eventSubscribers = new ConcurrentHashMap<>();
 		this.broadcastSubscribers = new ConcurrentHashMap<>();
 		this.numMicro = new ConcurrentHashMap<>();
-		this.micrtFuture = new ConcurrentHashMap<>();
-		this.micrtComplete = new ConcurrentHashMap<>();//++++++++++++
+		this.FutureComplete = new ConcurrentHashMap<>();//++++++++++++
 		this.eActuall = new ConcurrentHashMap<>();
 		this.lock=new Object();
 
@@ -40,8 +38,7 @@ public class MessageBusImpl implements MessageBus {
 		this.eventSubscribers = new ConcurrentHashMap<>(eventSus);
 		this.broadcastSubscribers = new ConcurrentHashMap<>(brodSus);
 		this.numMicro = new ConcurrentHashMap<>(numMicro);
-		this.micrtFuture = new ConcurrentHashMap<>(micrtFuture);
-		this.micrtComplete = new ConcurrentHashMap<>(micrtComplete);//++++++++++++
+		this.FutureComplete = new ConcurrentHashMap<>(micrtComplete);//++++++++++++
 		this.eActuall = new ConcurrentHashMap<>(eActuall);
 	}
 
@@ -73,23 +70,22 @@ public class MessageBusImpl implements MessageBus {
 				return;
 			}
 
-			synchronized (micrtFuture) {
-				Future<T> future = micrtFuture.get(m);
-				if (future == null) {
-					System.err.println("Error: No Future found for MicroService: " + m.getName());
+
+				if (result == null) {
+					System.err.println("Error: No resault for: " + m.getName());
 					return;
 				}
 
-				synchronized (future) {
+					Future <T> ans = new Future<>();
+					ans.resolve(result);
+					FutureComplete.put(e,ans);
 					System.out.println("Completing event: " + e + " for MicroService: " + m.getName());
-					future.resolve(result);
-				}
 
-				micrtFuture.remove(m);
+
 				eActuall.remove(e);
 			}
 		}
-	}
+
 
 
 	@Override
@@ -137,12 +133,12 @@ public class MessageBusImpl implements MessageBus {
 						numMicro.get(m).notifyAll();
 
 					}
-					eventSubscribers.get(e.getClass()).add(m);
-					eActuall.put(e, m);
-					Future<T> future = new Future<>();
-					micrtFuture.put(m, future);
-					return future;
-
+					synchronized (FutureComplete) {
+						Future<T> future = new Future<>();
+						FutureComplete.put(e, future);
+						eActuall.put(e, m);
+						return future;
+					}
 				}
 			} catch (InterruptedException e1) {
 				return null;

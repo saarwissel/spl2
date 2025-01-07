@@ -6,6 +6,8 @@ import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * TimeService acts as the global timer for the system, broadcasting TickBroadcast messages
  * at regular intervals and controlling the simulation's duration.
@@ -21,11 +23,17 @@ public class TimeService extends MicroService {
     int TickTime; //  מגדיר כמה זמן זו יחידת זמן במיליסקונדס
     int Duration; // כמה יחידות זמן יש לנו
     boolean crashed;
+    AtomicInteger currentTick;
     public TimeService(int TickTime, int Duration) {
         super("timeGuy",100);
         this.TickTime = TickTime;
         this.Duration = Duration;
         this.crashed=false;
+        this.currentTick = new AtomicInteger(0);
+    }
+
+    public int getTickTime() {
+        return TickTime;
     }
 
     /**
@@ -34,33 +42,38 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
-        long startTime = System.currentTimeMillis();
-        long totalTime = this.TickTime * this.Duration;
-        int tickCounter = 0;
+        currentTick.addAndGet(1);
+        TickBroadcast Tsend=new TickBroadcast(currentTick.get());
+        System.out.println("the tick is "+ currentTick.get() );
+        sendBroadcast(Tsend);
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast c) -> {
+
             this.crashed = true;
             terminate();
         });
-        while (System.currentTimeMillis() - startTime < totalTime && !this.crashed) {
-            long elapsedTime = System.currentTimeMillis() - startTime;
-            long remTime = Math.max(0, this.TickTime - (elapsedTime % this.TickTime)); // מניעת ערכים שליליים
-
-            if (elapsedTime / this.TickTime > tickCounter) { // וידוא שהטיק הנוכחי לא שודר כבר
-                tickCounter++;
-                sendBroadcast(new TickBroadcast(tickCounter));
+        subscribeBroadcast(TickBroadcast.class, (TickBroadcast c) -> {
+            currentTick.compareAndSet(currentTick.get(), c.getTick());
+            System.out.println("the tick after cas is "+ currentTick.get() );
+            if (currentTick.get() > this.Duration) {
+                sendBroadcast(new TerminatedBroadcast("time"));
+            }
+            else{
+                TickBroadcast tt=new TickBroadcast(currentTick.get()+1);
+                sendBroadcast(tt);
+            }
+        });
+        subscribeBroadcast(TerminatedBroadcast.class , (TerminatedBroadcast t) ->{
+            if(t.getService() == "time")
+            {
+                this.terminate();
+            }
+            if(t.getService() == "fusion")
+            {
+                this.terminate();
             }
 
-            try {
-                Thread.sleep(remTime); // מחכה בצורה מדויקת בין טיקים
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+        });
 
-        }
-        if (!this.crashed) {
-            sendBroadcast(new TerminatedBroadcast("time"));
-            this.terminate();
-        }
     }
 
 }

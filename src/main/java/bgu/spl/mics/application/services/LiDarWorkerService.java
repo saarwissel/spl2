@@ -62,7 +62,7 @@ public class LiDarWorkerService extends MicroService {
                     terminate();
                 }
         );
-        subscribeEvent(DetectObjectsEvents.class, (event) ->{//////with gall
+        subscribeEvent(DetectObjectsEvents.class, (DetectObjectsEvents event) ->{//////with gall
             int detectionTime = event.getTime();
             int i =0;
             int sumT = 0;
@@ -71,30 +71,34 @@ public class LiDarWorkerService extends MicroService {
             for (DetectedObject t: event.getDt()) {
                 LiDarDataBase lidarDatabase = LiDarDataBase.getInstance();//+++++++changed
                 s = lidarDatabase.getStumpedCloudPoints().get(detectionTime - event.getCameraFreq());
-                if(s.getId().equals("ERROR")){
-                    if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
+                if (s.getId().equals("ERROR")) {
+                    if (StatisticalFolder.getInstance().getSystemRuntime().get() == 0) {
                         StatisticalFolder.getInstance().setSystemRuntime(currentTick);
 
                     }
-                    CrashedBroadcast e=new CrashedBroadcast();
+                    CrashedBroadcast e = new CrashedBroadcast();
                     this.LiDarWorkerTracker.setStatus(2);
                     sendBroadcast(e);
+                    break;
+
+                } else {
+                    l = (List<CloudPoint>) s.getCpoints().get(i);
+
+                    readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
+                    i++;
+                    sumT = sumT + readyToSend.size();
+                    StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
 
                 }
-                l= (List<CloudPoint>) s.getCpoints().get(i);
-                readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
-                i++;
-                sumT = sumT + readyToSend.size();
-                StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
-            }
-            if (sumT == LiDarDataBase.getInstance().getStumpedCloudPoints().size()) {
-                sendBroadcast(new TerminatedBroadcast("lidar"));
-            }
+                if (sumT == LiDarDataBase.getInstance().getStumpedCloudPoints().size()) {
+                    sendBroadcast(new TerminatedBroadcast("lidar"));
+                }
 
-            if (currentTick >= detectionTime+ this.LiDarWorkerTracker.getFrequency()) {
-                TrackedObjectsEvents e=new TrackedObjectsEvents(detectionTime+LiDarWorkerTracker.getFrequency(),readyToSend,event.getDetectionTime());
-                this.clear(readyToSend);
-                sendEvent(e);
+                if (currentTick >= detectionTime + this.LiDarWorkerTracker.getFrequency()) {
+                    TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend, event.getDetectionTime());
+                    this.clear(readyToSend);
+                    sendEvent(e);
+                }
             }
             complete(event,true);
             });

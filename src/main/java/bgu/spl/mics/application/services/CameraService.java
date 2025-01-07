@@ -44,24 +44,34 @@ public class CameraService extends MicroService {
     camera.setStatus(0);
     subscribeBroadcast(TickBroadcast.class, (TickBroadcast tick) -> {
         int currentTick = tick.getTick();
-        int addStat = camera.getStampedDetectedObjects().size();
-        for(StampedDetectedObjects s:camera.getStampedDetectedObjects()){
-            for(DetectedObject d:s.getDobjects()){
-                if(d.getId()=="ERROR"){
-                    if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
-                        StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+        int addStat;
+        System.out.println("this the tick" + currentTick);
+
+        if(camera.getStampedDetectedObjects() != null)
+        {
+             addStat = camera.getStampedDetectedObjects().size();
+        }
+        else {
+            addStat = 0;
+        }
+        if (camera.getStampedDetectedObjects() != null && !camera.getStampedDetectedObjects().isEmpty() )
+        {
+            for(DetectedObject s:camera.getStampedDetectedObjects().get(currentTick).getDobjects()){
+                    if(s.getId()=="ERROR"){
+                        if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
+                            StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+                        }
+                        CrashedBroadcast e=new CrashedBroadcast();
+                        camera.setStatus(2);
+                        sendBroadcast(e);
                     }
-                    CrashedBroadcast e=new CrashedBroadcast();
-                    camera.setStatus(2);
-                    sendBroadcast(e);
+                    else {
+                        DetectObjectsEvents e = new DetectObjectsEvents(currentTick + camera.getFrequency(), camera.getFrequency(), camera.getStampedDetectedObjects().get(currentTick).getDobjects(), currentTick);
+                        StatisticalFolder.getInstance().setNumDetectedObjects(addStat);
+                        sendEvent(e);
+                    }
                 }
             }
-            if(s.getTime()+camera.getFrequency()==currentTick){
-                DetectObjectsEvents e=new DetectObjectsEvents(currentTick,this.camera.getFrequency(),(List<DetectedObject>) s,s.getTime());
-                StatisticalFolder.getInstance().setNumDetectedObjects(addStat); // סטטיסטיקה סינגלטון סטטיסטי  נוסיף addStat
-                sendEvent(e);
-            }
-        }
     }
     );
     subscribeBroadcast(TerminatedBroadcast.class, (TerminatedBroadcast terminated) -> {
