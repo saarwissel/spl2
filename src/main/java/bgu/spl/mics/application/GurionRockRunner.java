@@ -17,6 +17,7 @@ public class GurionRockRunner {
 
     private static final Logger logger = Logger.getLogger(GurionRockRunner.class.getName());
 
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.err.println("Please provide a configuration file path.");
@@ -35,7 +36,14 @@ public class GurionRockRunner {
 
             // Load LiDAR Data
             LiDarDataBase.initialize(config.Lidars.lidars_data_path);
-            logger.info("LiDAR data loaded successfully.");
+            List<StampedCloudPoints> lidarData = LiDarDataBase.getInstance().getStumpedCloudPoints();
+            if (lidarData == null || lidarData.isEmpty()) {
+                logger.severe("LiDAR data is null or empty.");
+                return;
+            }
+            logger.info("LiDAR data loaded successfully with " + lidarData.size() + " stamped cloud points.");
+
+
 
             // Load Camera Data
             Map<String, List<List<StampedDetectedObjects>>> cameraData = CameraUploader.loadCameraData(config.Cameras.camera_datas_path);
@@ -63,20 +71,42 @@ public class GurionRockRunner {
             List<Thread> threads = new ArrayList<>();
             MessageBusImpl bus = MessageBusImpl.getInstance();
 
+
+
             // Initialize Cameras
             int serviceCounter = 0;
             for (Configuration.CameraConfig camConfig : config.Cameras.CamerasConfigurations) {
-                Camera camera = new Camera(camConfig.id, camConfig.frequency);
+                // Get detected objects from cameraData using the camera_key
+                List<List<StampedDetectedObjects>> nestedObjects = cameraData.get(camConfig.camera_key);
+
+                // Flatten the nested lists into a single list
+                List<StampedDetectedObjects> flattenedObjects = new ArrayList<>();
+                if (nestedObjects != null) {
+                    for (List<StampedDetectedObjects> stampedList : nestedObjects) {
+                        flattenedObjects.addAll(stampedList);
+                    }
+                } else {
+                    logger.warning("No detected objects found for camera key: " + camConfig.camera_key);
+                }
+
+                // Create Camera object with associated detected objects
+                Camera camera = new Camera(camConfig.id, camConfig.frequency, flattenedObjects);
                 CameraService cameraService = new CameraService(camera);
                 serviceCounter++;
                 threads.add(new Thread(cameraService));
 
             }
+
             // Initialize LiDAR Workers
             for (Configuration.LiDarConfig lidarConfig : config.Lidars.LidarConfigurations) {
+                // Filter data relevant to the LiDAR worker (if applicable)
+                // Create LiDarWorkerTracker with its associated data
                 LiDarWorkerTracker lidarTracker = new LiDarWorkerTracker(lidarConfig.id, lidarConfig.frequency);
+
+                // Create and start LiDarWorkerService
                 LiDarWorkerService lidarService = new LiDarWorkerService(lidarTracker);
                 threads.add(new Thread(lidarService));
+                logger.info("Initialized LiDAR Worker with ID: " + lidarConfig.id + ", Points: " );
                 serviceCounter++;
             }
 
@@ -178,6 +208,7 @@ public class GurionRockRunner {
         static class CameraConfig {
             int id;
             int frequency;
+            List<StampedDetectedObjects> detectedObjects; // רשימת אובייקטים שזוהו
             String camera_key;
         }
 

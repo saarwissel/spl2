@@ -77,11 +77,10 @@ public class FusionSlamService extends MicroService {
                     terminate();
                 }
         );
-        System.out.println("yaya was here jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
+
 
         subscribeEvent(TrackedObjectsEvents.class, (TrackedObjectsEvents t) -> {
             // Update the global map with the new tracked object
-            System.out.println(  " was hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
 
             if(FusionSlam.getInstance().getPoses().get(t.getDetectionTime()) == null)
             {

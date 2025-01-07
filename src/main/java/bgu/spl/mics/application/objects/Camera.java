@@ -8,15 +8,21 @@ public class Camera {
     private int id; // מזהה המצלמה
     private int frequency; // פרק הזמן לשליחת אירועים
     private CameraStatus status; // סטטוס המצלמה
-    private List<StampedDetectedObjects> Tobjects; // רשימת אובייקטים שזוהו
+    private List<StampedDetectedObjects> detectedObjects; // רשימת אובייקטים שזוהו
 
 
 
     public Camera(int id, int frequency) {
         this.id = id;
         this.frequency = frequency;
-        this.status = CameraStatus.DOWN;
-        this.Tobjects = new ArrayList<>();
+        this.status = CameraStatus.UP;
+        this.detectedObjects = new ArrayList<>();
+    }
+    public Camera(int id, int frequency, List<StampedDetectedObjects> detectedObjects) {
+        this.id = id;
+        this.frequency = frequency;
+        this.status = CameraStatus.UP;
+        this.detectedObjects = detectedObjects;
 
     }
 
@@ -48,13 +54,13 @@ public class Camera {
     }
 
     public List<StampedDetectedObjects> getStampedDetectedObjects() {
-        return Tobjects;
+        return detectedObjects;
     }
 
 
     public List<DetectedObject> getDetectedObjectsAtTick(int tick) {
         // סינון הרשימה של StampedDetectedObjects לפי הזמן הנתון
-        for (StampedDetectedObjects stampedObject : Tobjects) {
+        for (StampedDetectedObjects stampedObject : detectedObjects) {
             if (stampedObject.getTime() == tick) {
                 return stampedObject.getDobjects(); // מחזיר את רשימת האובייקטים שהתגלו בטיק זה
             }
@@ -67,7 +73,7 @@ public class Camera {
                 "id=" + id +
                 ", frequency=" + frequency +
                 ", status=" + status +
-                ", detectedObjectsList=" + Tobjects +
+                ", detectedObjectsList=" + detectedObjects +
                 '}';
     }
 

@@ -1,7 +1,6 @@
 package bgu.spl.mics.application.objects;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -11,23 +10,26 @@ import java.util.List;
 public class StampedCloudPoints {
     String id;
     int time;
-    List<CloudPoint> Cpoints;
-
+    private List<List<CloudPoint>> cloudPoints;
     public StampedCloudPoints(String id) {
         this.id = id;
         this.time = (int) System.currentTimeMillis();
-        this.Cpoints = new ArrayList<>();
+        this.cloudPoints = new ArrayList<>();
     }
 
     public int getTime() {
         return time;
     }
 
-    public List<CloudPoint> getCpoints() {
-        return Cpoints;
+    public List<CloudPoint>getCpoints(int i) {
+        return cloudPoints.get(i);
     }
 
     public String getId() {
         return this.id;
+    }
+
+    public int getLidarId() {
+        return Integer.parseInt(this.id);
     }
 }

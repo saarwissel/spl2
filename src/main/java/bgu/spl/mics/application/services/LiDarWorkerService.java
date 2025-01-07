@@ -63,38 +63,48 @@ public class LiDarWorkerService extends MicroService {
                 }
         );
         subscribeEvent(DetectObjectsEvents.class, (DetectObjectsEvents event) ->{//////with gall
+            System.out.println("flag 1");
             int detectionTime = event.getTime();
             int i =0;
             int sumT = 0;
             StampedCloudPoints s;
             List<CloudPoint> l;
             for (DetectedObject t: event.getDt()) {
-                LiDarDataBase lidarDatabase = LiDarDataBase.getInstance();//+++++++changed
-                s = lidarDatabase.getStumpedCloudPoints().get(detectionTime - event.getCameraFreq());
-                if (s.getId().equals("ERROR")) {
-                    if (StatisticalFolder.getInstance().getSystemRuntime().get() == 0) {
-                        StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+                System.out.println("flag 2");
 
-                    }
-                    CrashedBroadcast e = new CrashedBroadcast();
-                    this.LiDarWorkerTracker.setStatus(2);
-                    sendBroadcast(e);
-                    break;
+                LiDarDataBase lidarDatabase = LiDarDataBase.getInstance();
+                if(detectionTime - event.getCameraFreq() < lidarDatabase.getStumpedCloudPoints().size())
+                {
+                        s = lidarDatabase.getStumpedCloudPoints().get(detectionTime - event.getCameraFreq());
+                        if (s.getId().equals("ERROR")) {
+                          if (StatisticalFolder.getInstance().getSystemRuntime().get() == 0) {
+                           StatisticalFolder.getInstance().setSystemRuntime(currentTick);
 
-                } else {
-                    l = (List<CloudPoint>) s.getCpoints().get(i);
-
-                    readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
-                    i++;
-                    sumT = sumT + readyToSend.size();
-                    StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
+                          }
+                         CrashedBroadcast e = new CrashedBroadcast();
+                         this.LiDarWorkerTracker.setStatus(2);
+                            sendBroadcast(e);
+                            break;
 
                 }
+                        else {
+                         System.out.println("flag 3");
+
+                         l = s.getCpoints(i);
+
+                            readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, l)));
+                         i++;
+                            sumT = sumT + readyToSend.size();
+                            StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
+
+                }}
                 if (sumT == LiDarDataBase.getInstance().getStumpedCloudPoints().size()) {
                     sendBroadcast(new TerminatedBroadcast("lidar"));
                 }
 
                 if (currentTick >= detectionTime + this.LiDarWorkerTracker.getFrequency()) {
+                    System.out.println("flag 4");
+
                     TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend, event.getDetectionTime());
                     this.clear(readyToSend);
                     sendEvent(e);

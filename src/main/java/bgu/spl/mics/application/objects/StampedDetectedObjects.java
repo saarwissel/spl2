@@ -10,11 +10,16 @@ import java.util.List;
  */
 public class StampedDetectedObjects {
     int time;
-    List<DetectedObject> Dobjects;
+    List<DetectedObject> detectedObjects;
     public StampedDetectedObjects(int numOfTick){
         this.time = numOfTick;
-        this.Dobjects = new ArrayList<>();
+        this.detectedObjects = new ArrayList<>();
         }
+    public StampedDetectedObjects(int numOfTick,List<DetectedObject> detectedObjects){
+
+        this.time = numOfTick;
+        this.detectedObjects = detectedObjects;
+    }
 
 
     public int getTime() {
@@ -23,7 +28,7 @@ public class StampedDetectedObjects {
 
 
     public List<DetectedObject> getDobjects() {
-        return Dobjects;
+        return detectedObjects;
     }
 
 }

@@ -4,6 +4,7 @@ import bgu.spl.mics.MessageBusImpl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -32,18 +33,27 @@ public class LiDarDataBase {
     public List<StampedCloudPoints> getStumpedCloudPoints() {
         return StumpedCloudPoints;
     }
-    private void loadFromFile(String filePath)  {////++++ changed
+    private void loadFromFile(String filePath) {
         Gson gson = new Gson();
         Type type = new TypeToken<List<StampedCloudPoints>>() {}.getType();
 
         try (FileReader reader = new FileReader(filePath)) {
             List<StampedCloudPoints> data = gson.fromJson(reader, type);
-            this.StumpedCloudPoints.addAll(data);
+            if (data != null) {
+                this.StumpedCloudPoints.addAll(data);
+                System.out.println("LiDAR data loaded successfully with " + data.size() + " entries.");
+            } else {
+                System.err.println("LiDAR data is empty or invalid.");
+            }
         } catch (IOException e) {
-        System.err.println("Failed to load file: " + filePath);
-        e.printStackTrace(); // הדפסת ה-Stack Trace לצורך Debug
+            System.err.println("Failed to load file: " + filePath);
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("An error occurred while parsing LiDAR data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
     public static void initialize(String filePath) {
         SingletonHolder.INSTANCE.loadFromFile(filePath);
     }

@@ -49,18 +49,16 @@ public class CameraService extends MicroService {
         else {
             addStat = 0;
         }
-        System.out.println("flag 1++++++++++++++++++++++++++++++++++++++++++++++++++");
-                System.out.println(camera.getStampedDetectedObjects().size());
+
+
         if (camera.getStampedDetectedObjects() != null && !camera.getStampedDetectedObjects().isEmpty() )
         {
-            System.out.println("flag 2");
+
             for(DetectedObject s:camera.getStampedDetectedObjects().get(currentTick).getDobjects()){
                     if(s.getId()=="ERROR"){
                         if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
                             StatisticalFolder.getInstance().setSystemRuntime(currentTick);
-                            System.out.println("flag 3");
                         }
-                        System.out.println("flag 4");
                         CrashedBroadcast e=new CrashedBroadcast();
                         camera.setStatus(2);
                         sendBroadcast(e);
