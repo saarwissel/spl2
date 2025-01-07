@@ -85,7 +85,9 @@ public class FusionSlamService extends MicroService {
             }
             else if (FusionSlam.getInstance().getLandMarks().size() == 0){
                 for (TrackedObject trackedObject : t.getTrackedObjects()) {
-                    FusionSlam.getInstance().getLandMarks().add(new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime())));
+                    LandMark landy=new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime()));
+                    System.out.println(landy.toString()+"saar");
+                    FusionSlam.getInstance().getLandMarks().add(landy);
                 }
                 int sumLandMarks = FusionSlam.getInstance().getLandMarks().size();
                 StatisticalFolder.getInstance().setNumLandmarks(sumLandMarks);
@@ -103,7 +105,9 @@ public class FusionSlamService extends MicroService {
                         }
                     }
                     if (!found) {
-                        FusionSlam.getInstance().getLandMarks().add(new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime())));
+                        LandMark land= new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime()));
+                        FusionSlam.getInstance().getLandMarks().add(land);
+                        System.out.println(land.toString());
                     }
                 }
                 int sumLandMarks = FusionSlam.getInstance().getLandMarks().size();

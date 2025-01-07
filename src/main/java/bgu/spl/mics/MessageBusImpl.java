@@ -61,17 +61,36 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> void complete(Event<T> e, T result) {
-		if(eActuall.get(e) != null && micrtFuture.get(eActuall.get(e)) != null)
-		{
-			synchronized (micrtFuture.get(eActuall.get(e)))
-			{
-				micrtFuture.get(eActuall.get(e)).resolve(result);
-				micrtComplete.put(e, eActuall.get(e));//++++++++++++
-				eActuall.remove(e, eActuall.get(e));
-				micrtFuture.remove(eActuall.get(e), micrtFuture.get(eActuall.get(e)));
+		if (e == null) {
+			System.err.println("Error: Attempted to complete a null event.");
+			return;
+		}
+
+		synchronized (eActuall) {
+			MicroService m = eActuall.get(e);
+			if (m == null) {
+				System.err.println("Error: No MicroService found for event: " + e);
+				return;
+			}
+
+			synchronized (micrtFuture) {
+				Future<T> future = micrtFuture.get(m);
+				if (future == null) {
+					System.err.println("Error: No Future found for MicroService: " + m.getName());
+					return;
+				}
+
+				synchronized (future) {
+					System.out.println("Completing event: " + e + " for MicroService: " + m.getName());
+					future.resolve(result);
+				}
+
+				micrtFuture.remove(m);
+				eActuall.remove(e);
 			}
 		}
 	}
+
 
 	@Override
 	public void sendBroadcast(Broadcast b) {
@@ -94,7 +113,7 @@ public class MessageBusImpl implements MessageBus {
 
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
-
+		LinkedBlockingQueue<MicroService>subs;
 
 		if(e == null)
 		{
@@ -102,14 +121,16 @@ public class MessageBusImpl implements MessageBus {
 		}
 		synchronized (eventSubscribers)
 		{
+			subs=eventSubscribers.get(e.getClass());
 			try {
 				while(this.eventSubscribers == null)
 				{
 					this.wait();
 				}
-				this.notify();
-
-				MicroService m = eventSubscribers.get(e.getClass()).poll();
+				if(subs==null||subs.isEmpty()){
+					return null;
+				}
+				MicroService m = subs.poll();
 				if(m != null) {
 					synchronized (numMicro.get(m)) {
 						numMicro.get(m).add(e);

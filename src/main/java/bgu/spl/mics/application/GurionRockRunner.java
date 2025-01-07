@@ -70,9 +70,6 @@ public class GurionRockRunner {
                 threads.add(new Thread(cameraService));
 
             }
-            System.out.println("הגענו עד הלום ");
-
-
             // Initialize LiDAR Workers
             for (Configuration.LiDarConfig lidarConfig : config.Lidars.LidarConfigurations) {
                 LiDarWorkerTracker lidarTracker = new LiDarWorkerTracker(lidarConfig.id, lidarConfig.frequency);
@@ -88,6 +85,7 @@ public class GurionRockRunner {
             // Initialize Pose Service
             PoseService poseService = new PoseService(gpsimu);
             threads.add(new Thread(poseService));
+
 
             // Initialize Time Service
 
@@ -118,6 +116,7 @@ public class GurionRockRunner {
             logger.severe("An error occurred during the simulation: " + e.getMessage());
             e.printStackTrace();
         }
+
     }
 
     private static void writeOutput(String outputPath, FusionSlam fusionSlam) {

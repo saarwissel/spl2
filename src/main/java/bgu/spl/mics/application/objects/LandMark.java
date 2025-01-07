@@ -93,5 +93,8 @@ public class LandMark {
 
     }
 
-
+    @Override
+    public String toString() {
+        return super.toString();
+    }
 }

@@ -46,15 +46,14 @@ public class Future<T> {
 	/**
      * Resolves the result of this Future object.
      */
-	public void resolve (T result) {
-		if(result != null)
-		{
-			this.result=result;
-			isDone=true;
-			this.notifyAll();
+	public void resolve(T result) {
+		synchronized (this) {
+			this.result = result;
+			this.isDone = true;
+			this.notifyAll(); // Notify all waiting threads
 		}
-
 	}
+
 	
 	/**
      * @return true if this object has been resolved, false otherwise

@@ -59,6 +59,14 @@ public class FusionSlam {
             StatisticalFolder.getInstance().setNumLandmarks(1);
     }
 
+    @Override
+    public String toString() {
+        String str ="";
+        for (LandMark l:this.getLandMarks()){
+            str=str+ l.id.toString();
+        }
+        return str;
+    }
 }
 
 
