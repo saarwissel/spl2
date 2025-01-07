@@ -69,13 +69,14 @@ public class LandMark {
         return x1+y1+pose.getY();
     }
 
-    public void update(List<CloudPoint>TrackedCloudPoints){
+    public void update(List<CloudPoint>TrackedCloudPoints, Pose p){
         List<CloudPoint> LandToAdd=new ArrayList<>();
+        this.pose=p;
         if(TrackedCloudPoints.size()>0) {
             for (CloudPoint cloudPoint : TrackedCloudPoints) {
-                this.globalX = calculX(cloudPoint.getX(), cloudPoint.getY());
-                this.gloablY = calculY(cloudPoint.getX(), cloudPoint.getY());
-                LandToAdd.add(new CloudPoint(this.globalX, this.gloablY));
+                double newX = calculX(cloudPoint.getX(), cloudPoint.getY());
+                double newY = calculY(cloudPoint.getX(), cloudPoint.getY());
+                LandToAdd.add(new CloudPoint(newX, newY));
             }
         }
         int i = 0;

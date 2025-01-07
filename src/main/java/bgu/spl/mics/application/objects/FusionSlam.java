@@ -47,7 +47,7 @@ public class FusionSlam {
                 boolean found = false;
                 for (LandMark landMark : FusionSlam.getInstance().getLandMarks()) {
                     if (landMark.getId().equals(t.getId())) {
-                        landMark.update(t.getCloudPoints());
+                        landMark.update(t.getCloudPoints(), p);
                         found = true;
                         break;
                     }

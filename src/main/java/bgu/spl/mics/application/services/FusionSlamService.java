@@ -99,7 +99,7 @@ public class FusionSlamService extends MicroService {
                     boolean found = false;
                     for (LandMark landMark : FusionSlam.getInstance().getLandMarks()) {
                         if (landMark.getId().equals(trackedObject.getId())) {
-                            landMark.update(trackedObject.getCloudPoints());
+                            landMark.update(trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(trackedObject.getDetectionTime()));
                             found = true;
                             break;
                         }
