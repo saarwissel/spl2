@@ -1,159 +1,134 @@
-
 package bgu.spl.mics;
-import java.util.LinkedList;
-import java.util.Queue;
+
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * The {@link MessageBusImpl class is the implementation of the MessageBus interface.
- * Write your implementation here!
- * Only one public method (in addition to getters which can be public solely for unit testing) may be added to this class
- * All other methods and members you add the class must be private.
+ * This class manages the subscription and dispatching of events and broadcasts between MicroServices.
  */
 public class MessageBusImpl implements MessageBus {
-	private ConcurrentHashMap<Class<? extends Event>, LinkedBlockingQueue<MicroService>> eventSubscribers;
-	private ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
-	private ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> numMicro;
-	private ConcurrentHashMap<Event,Future> FutureComplete;//++++++++++++
-	private ConcurrentHashMap<Event, MicroService> eActuall;
-	private Object lock;
-	ReentrantReadWriteLock locker=new ReentrantReadWriteLock();
+	private final ConcurrentHashMap<Class<? extends Event>, LinkedBlockingQueue<MicroService>> eventSubscribers;
+	private final ConcurrentHashMap<Class<? extends Broadcast>, LinkedBlockingQueue<MicroService>> broadcastSubscribers;
+	private final ConcurrentHashMap<MicroService, LinkedBlockingQueue<Message>> microServiceQueues;
+	private final ConcurrentHashMap<Event, Future> futureMap;
+	private final ConcurrentHashMap<Event, MicroService> eventToMicroService;
 
 	private static class SingletonHolder {
 		private static final MessageBusImpl INSTANCE = new MessageBusImpl();
 	}
 
-	public MessageBusImpl() {
-		this.eventSubscribers = new ConcurrentHashMap<>();
-		this.broadcastSubscribers = new ConcurrentHashMap<>();
-		this.numMicro = new ConcurrentHashMap<>();
-		this.FutureComplete = new ConcurrentHashMap<>();//++++++++++++
-		this.eActuall = new ConcurrentHashMap<>();
-		this.lock=new Object();
-
+	private MessageBusImpl() {
+		eventSubscribers = new ConcurrentHashMap<>();
+		broadcastSubscribers = new ConcurrentHashMap<>();
+		microServiceQueues = new ConcurrentHashMap<>();
+		futureMap = new ConcurrentHashMap<>();
+		eventToMicroService = new ConcurrentHashMap<>();
 	}
 
-	public MessageBusImpl(int eventSus, int brodSus, int numMicro, int micrtFuture, int micrtComplete, int eActuall) {
-		this.eventSubscribers = new ConcurrentHashMap<>(eventSus);
-		this.broadcastSubscribers = new ConcurrentHashMap<>(brodSus);
-		this.numMicro = new ConcurrentHashMap<>(numMicro);
-		this.FutureComplete = new ConcurrentHashMap<>(micrtComplete);//++++++++++++
-		this.eActuall = new ConcurrentHashMap<>(eActuall);
+	public static MessageBusImpl getInstance() {
+		return SingletonHolder.INSTANCE;
 	}
 
 	@Override
 	public <T> void subscribeEvent(Class<? extends Event<T>> type, MicroService m) {
-		synchronized (eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>())) {
-			eventSubscribers.get(type).add(m);
+		synchronized (eventSubscribers) {
+			eventSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>()).add(m);
 		}
-
-
+		System.out.println(m.getName() + " subscribed to Event: " + type.getSimpleName());
 	}
 
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
-		broadcastSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>()).add(m);
+		synchronized (broadcastSubscribers) {
+			broadcastSubscribers.computeIfAbsent(type, k -> new LinkedBlockingQueue<>()).add(m);
+		}
+		System.out.println(m.getName() + " subscribed to Broadcast: " + type.getSimpleName());
 	}
 
 	@Override
 	public <T> void complete(Event<T> e, T result) {
-		if (e == null) {
-			System.err.println("Error: Attempted to complete a null event.");
+		if (e == null || result == null) {
+			System.err.println("Error: Attempted to complete a null event or result.");
 			return;
 		}
-
-		synchronized (eActuall) {
-			MicroService m = eActuall.get(e);
-			if (m == null) {
-				System.err.println("Error: No MicroService found for event: " + e);
-				return;
+		synchronized (futureMap) {
+			if (result != null) {
+				futureMap.remove(e);
+				futureMap.put(e, new Future(result));
+				eventToMicroService.remove(e);
+				System.out.println("Completed Event: " + e + " with result: " + result);
+			} else {
+				System.err.println("Error: No Result found for event: " + e);
 			}
-
-
-				if (result == null) {
-					System.err.println("Error: No resault for: " + m.getName());
-					return;
-				}
-
-					Future <T> ans = new Future<>();
-					ans.resolve(result);
-					FutureComplete.put(e,ans);
-					System.out.println("Completing event: " + e + " for MicroService: " + m.getName());
-
-
-				eActuall.remove(e);
-			}
-		}
-
-
-
-	@Override
-	public void sendBroadcast(Broadcast b) {
-		LinkedBlockingQueue<MicroService> subs = broadcastSubscribers.get(b.getClass());
-		if (subs != null) {
-			subs.forEach(m -> {
-				if(numMicro.get(m) != null && b != null)
-				{
-					synchronized (numMicro.get(m)) {
-						numMicro.get(m).add(b);
-						numMicro.get(m).notifyAll();
-					}
-				}
-
-			});
-
 		}
 	}
 
+	@Override
+	public void sendBroadcast(Broadcast b) {
+		LinkedBlockingQueue<MicroService> subscribers;
+		synchronized (broadcastSubscribers) {
+			subscribers = broadcastSubscribers.get(b.getClass());
+		}
+		if (subscribers != null) {
+			for (MicroService m : subscribers) {
+				LinkedBlockingQueue<Message> queue = microServiceQueues.get(m);
+				if (queue != null) {
+					synchronized (queue) {
+						queue.add(b);
+						queue.notifyAll();
+					}
+				}
+			}
+			System.out.println("Broadcast sent: " + b.getClass().getSimpleName());
+		}
+	}
 
 	@Override
 	public <T> Future<T> sendEvent(Event<T> e) {
-		LinkedBlockingQueue<MicroService>subs;
-
-		if(e == null)
-		{
+		if (e == null) {
 			return null;
 		}
-		synchronized (eventSubscribers)
-		{
-			subs=eventSubscribers.get(e.getClass());
-			try {
-				while(this.eventSubscribers == null)
-				{
-					this.wait();
-				}
-				if(subs==null||subs.isEmpty()){
-					return null;
-				}
-				MicroService m = subs.poll();
-				if(m != null) {
-					synchronized (numMicro.get(m)) {
-						numMicro.get(m).add(e);
-						numMicro.get(m).notifyAll();
-
-					}
-					synchronized (FutureComplete) {
-						Future<T> future = new Future<>();
-						FutureComplete.put(e, future);
-						eActuall.put(e, m);
-						return future;
-					}
-				}
-			} catch (InterruptedException e1) {
-				return null;
+		LinkedBlockingQueue<MicroService> subscribers;
+		synchronized (eventSubscribers) {
+			subscribers = eventSubscribers.get(e.getClass());
+		}
+		if (subscribers == null || subscribers.isEmpty()) {
+			return null;
+		}
+		MicroService m;
+		synchronized (subscribers) {
+			m = subscribers.poll();
+			if (m != null) {
+				subscribers.add(m); // Re-add for round-robin behavior
 			}
-
-			return null;
-
 		}
-
+		if (m != null) {
+			LinkedBlockingQueue<Message> queue = microServiceQueues.get(m);
+			if (queue != null) {
+				synchronized (queue) {
+					queue.add(e);
+					queue.notifyAll();
+				}
+				Future<T> future = new Future<>();
+				synchronized (futureMap) {
+					futureMap.put(e, future);
+				}
+				synchronized (eventToMicroService) {
+					eventToMicroService.put(e, m);
+				}
+				System.out.println("Event sent: " + e.getClass().getSimpleName() + " to " + m.getName());
+				return future;
+			}
+		}
+		return null;
 	}
 
 	@Override
 	public void register(MicroService m) {
-		LinkedBlockingQueue<Message> queue = new LinkedBlockingQueue<>();
-		numMicro.put(m, queue);
+		if (!microServiceQueues.containsKey(m)) {
+			microServiceQueues.put(m, new LinkedBlockingQueue<>());
+		}
+		System.out.println(m.getName() + " registered.");
 	}
 
 	@Override
@@ -161,39 +136,27 @@ public class MessageBusImpl implements MessageBus {
 		if (m == null) {
 			return;
 		}
-
 		synchronized (eventSubscribers) {
-			synchronized (broadcastSubscribers) {
-				numMicro.remove(m);
-				eventSubscribers.forEach((k, v) -> v.remove(m));
-				broadcastSubscribers.forEach((k, v) -> v.remove(m));
-			}
+			eventSubscribers.forEach((event, queue) -> queue.remove(m));
 		}
+		synchronized (broadcastSubscribers) {
+			broadcastSubscribers.forEach((broadcast, queue) -> queue.remove(m));
+		}
+		microServiceQueues.remove(m);
+		System.out.println(m.getName() + " unregistered.");
 	}
-
 
 	@Override
 	public Message awaitMessage(MicroService m) throws InterruptedException {
-		if(m==null){
-			throw new InterruptedException("MicroService is null.");
-		}
-		else{
-		LinkedBlockingQueue<Message> queue = numMicro.get(m);
+		LinkedBlockingQueue<Message> queue = microServiceQueues.get(m);
 		if (queue == null) {
 			throw new IllegalStateException("MicroService " + m.getName() + " is not registered.");
 		}
-		synchronized (queue) { // ודא סינכרון על התור
+		synchronized (queue) {
 			while (queue.isEmpty()) {
-				queue.wait(); // ממתין עד שההודעה תגיע
+				queue.wait();
 			}
-			return queue.take(); // מחזיר הודעה
+			return queue.take();
 		}
-		}
-	}
-
-	public static synchronized MessageBusImpl getInstance() {
-		return SingletonHolder.INSTANCE;
-
 	}
 }
-

@@ -5,6 +5,7 @@ import bgu.spl.mics.application.objects.StatisticalFolder;
 import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
+import bgu.spl.mics.application.objects.SystemServicesCountDownLatch;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -23,13 +24,13 @@ public class TimeService extends MicroService {
     int TickTime; //  מגדיר כמה זמן זו יחידת זמן במיליסקונדס
     int Duration; // כמה יחידות זמן יש לנו
     boolean crashed;
-    AtomicInteger currentTick;
+    int currentTick;
     public TimeService(int TickTime, int Duration) {
         super("timeGuy",100);
         this.TickTime = TickTime;
         this.Duration = Duration;
         this.crashed=false;
-        this.currentTick = new AtomicInteger(0);
+        this.currentTick = 0;
     }
 
     public int getTickTime() {
@@ -42,25 +43,10 @@ public class TimeService extends MicroService {
      */
     @Override
     protected void initialize() {
-        currentTick.addAndGet(1);
-        TickBroadcast Tsend=new TickBroadcast(currentTick.get());
-        System.out.println("the tick is "+ currentTick.get() );
-        sendBroadcast(Tsend);
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast c) -> {
 
             this.crashed = true;
             terminate();
-        });
-        subscribeBroadcast(TickBroadcast.class, (TickBroadcast c) -> {
-            currentTick.compareAndSet(currentTick.get(), c.getTick());
-            System.out.println("the tick after cas is "+ currentTick.get() );
-            if (currentTick.get() > this.Duration) {
-                sendBroadcast(new TerminatedBroadcast("time"));
-            }
-            else{
-                TickBroadcast tt=new TickBroadcast(currentTick.get()+1);
-                sendBroadcast(tt);
-            }
         });
         subscribeBroadcast(TerminatedBroadcast.class , (TerminatedBroadcast t) ->{
             if(t.getService() == "time")
@@ -73,6 +59,27 @@ public class TimeService extends MicroService {
             }
 
         });
+        try {SystemServicesCountDownLatch.getInstance().getCountDownLatch().await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        while(this.currentTick < this.Duration && !this.crashed)
+        {
+            TickBroadcast Tsend = new TickBroadcast(this.currentTick);
+            sendBroadcast(Tsend);
+            try {
+                Thread.sleep(this.TickTime*1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("sent tick"+this.currentTick);
+            this.currentTick++;
+
+        }
+        sendBroadcast(new TerminatedBroadcast("time"));
+        this.terminate();
+        System.out.println("finish init"+ this.getName());
 
     }
 

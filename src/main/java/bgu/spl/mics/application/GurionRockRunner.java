@@ -6,6 +6,7 @@ import bgu.spl.mics.application.services.*;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.Gson;
+import java.nio.file.Paths;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class GurionRockRunner {
         }
 
         String configPath = args[0];
-        String outputPath = "C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\output_file.json";
+        String outputPath = Paths.get(args[0]).getParent().toAbsolutePath().toString();
 
         try {
             // Load configuration
@@ -63,9 +64,11 @@ public class GurionRockRunner {
             MessageBusImpl bus = MessageBusImpl.getInstance();
 
             // Initialize Cameras
+            int serviceCounter = 0;
             for (Configuration.CameraConfig camConfig : config.Cameras.CamerasConfigurations) {
                 Camera camera = new Camera(camConfig.id, camConfig.frequency);
                 CameraService cameraService = new CameraService(camera);
+                serviceCounter++;
                 threads.add(new Thread(cameraService));
 
             }
@@ -74,16 +77,22 @@ public class GurionRockRunner {
                 LiDarWorkerTracker lidarTracker = new LiDarWorkerTracker(lidarConfig.id, lidarConfig.frequency);
                 LiDarWorkerService lidarService = new LiDarWorkerService(lidarTracker);
                 threads.add(new Thread(lidarService));
+                serviceCounter++;
             }
 
             // Initialize FusionSlam
             FusionSlam fusionSlam = FusionSlam.getInstance();
             FusionSlamService fusionSlamService = new FusionSlamService(fusionSlam);
             threads.add(new Thread(fusionSlamService));
+            serviceCounter++;
 
             // Initialize Pose Service
             PoseService poseService = new PoseService(gpsimu);
             threads.add(new Thread(poseService));
+
+            SystemServicesCountDownLatch.init(6);
+            System.out.println(serviceCounter);
+
 
 
             // Initialize Time Service
@@ -109,6 +118,12 @@ public class GurionRockRunner {
             // Output Results
             writeOutput(outputPath, fusionSlam);
             logger.info("Simulation completed successfully. Output written to: " + outputPath);
+            System.out.println("landmarksssssss");
+
+            fusionSlam.getLandMarks().forEach(landMark -> {
+                System.out.println("landmarks");
+                System.out.println(landMark.toString());
+            });
 
         } catch (Exception e) {
             logger.severe("An error occurred during the simulation: " + e.getMessage());

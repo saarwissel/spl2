@@ -21,6 +21,12 @@ public class Future<T> {
 		result=null;
 		isDone=false;
 	}
+
+	public Future(T result)
+	{
+		this.result = result;
+		isDone = true;
+	}
 	
 	/**
      * retrieves the result the Future object holds if it has been resolved.
@@ -48,9 +54,9 @@ public class Future<T> {
      */
 	public void resolve(T result) {
 		synchronized (this) {
-			this.result = result;
-			this.isDone = true;
-			this.notifyAll(); // Notify all waiting threads
+				this.result = result;
+				this.isDone = true;
+				this.notifyAll(); // Notify all waiting threads
 		}
 	}
 

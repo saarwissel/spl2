@@ -6,10 +6,12 @@ public class TickBroadcast implements Broadcast {
     private int tick;
 
     public TickBroadcast(int numTick) {
-        this.tick = tick;
+
+        this.tick = numTick;
     }
 
     public int getTick() {
-        return tick;
+
+        return this.tick;
     }
 }

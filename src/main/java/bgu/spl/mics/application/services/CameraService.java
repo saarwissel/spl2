@@ -1,10 +1,7 @@
 package bgu.spl.mics.application.services;
 
 import bgu.spl.mics.MicroService;
-import bgu.spl.mics.application.objects.Camera;
-import bgu.spl.mics.application.objects.DetectedObject;
-import bgu.spl.mics.application.objects.StampedDetectedObjects;
-import bgu.spl.mics.application.objects.StatisticalFolder;
+import bgu.spl.mics.application.objects.*;
 import bgu.spl.mics.application.messages.DetectObjectsEvents;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
@@ -29,7 +26,7 @@ public class CameraService extends MicroService {
      * @param camera The Camera object that this service will use to detect objects.
      */
     public CameraService(Camera camera) {
-        super(Integer.toString(camera.getId()),100);
+        super("camera "+camera.getId(),100);
         this.camera=camera;
         currTime=  System.currentTimeMillis();
     }
@@ -45,8 +42,6 @@ public class CameraService extends MicroService {
     subscribeBroadcast(TickBroadcast.class, (TickBroadcast tick) -> {
         int currentTick = tick.getTick();
         int addStat;
-        System.out.println("this the tick" + currentTick);
-
         if(camera.getStampedDetectedObjects() != null)
         {
              addStat = camera.getStampedDetectedObjects().size();
@@ -54,13 +49,18 @@ public class CameraService extends MicroService {
         else {
             addStat = 0;
         }
+        System.out.println("flag 1++++++++++++++++++++++++++++++++++++++++++++++++++");
+                System.out.println(camera.getStampedDetectedObjects().size());
         if (camera.getStampedDetectedObjects() != null && !camera.getStampedDetectedObjects().isEmpty() )
         {
+            System.out.println("flag 2");
             for(DetectedObject s:camera.getStampedDetectedObjects().get(currentTick).getDobjects()){
                     if(s.getId()=="ERROR"){
                         if(StatisticalFolder.getInstance().getSystemRuntime().get()==0){
                             StatisticalFolder.getInstance().setSystemRuntime(currentTick);
+                            System.out.println("flag 3");
                         }
+                        System.out.println("flag 4");
                         CrashedBroadcast e=new CrashedBroadcast();
                         camera.setStatus(2);
                         sendBroadcast(e);
@@ -68,6 +68,7 @@ public class CameraService extends MicroService {
                     else {
                         DetectObjectsEvents e = new DetectObjectsEvents(currentTick + camera.getFrequency(), camera.getFrequency(), camera.getStampedDetectedObjects().get(currentTick).getDobjects(), currentTick);
                         StatisticalFolder.getInstance().setNumDetectedObjects(addStat);
+                        System.out.println(e.toString()+ camera.getStampedDetectedObjects().get(currentTick).getDobjects().toString() +" was here");
                         sendEvent(e);
                     }
                 }
@@ -85,6 +86,10 @@ public class CameraService extends MicroService {
         terminate();
     }
     );
+        System.out.println("finish init"+ this.getName());
+        SystemServicesCountDownLatch.getInstance().getCountDownLatch().countDown();
+
+
 
     }
 

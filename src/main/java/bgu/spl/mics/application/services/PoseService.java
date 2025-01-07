@@ -8,6 +8,7 @@ import bgu.spl.mics.application.messages.CrashedBroadcast;
 import bgu.spl.mics.application.messages.PoseEvent;
 import bgu.spl.mics.application.messages.TerminatedBroadcast;
 import bgu.spl.mics.application.messages.TickBroadcast;
+import bgu.spl.mics.application.objects.SystemServicesCountDownLatch;
 
 import java.util.List;
 
@@ -33,9 +34,6 @@ public class PoseService extends MicroService {
      */
     @Override
     protected void initialize() {
-        //String filePath = "C:\\Users\\saarw\\Downloads\\Skeleton\\example_input_2\\pose_data.json";
-
-        //List<Pose> poseList = PoseLoader.loadPoses(filePath);
         subscribeBroadcast(CrashedBroadcast.class, (CrashedBroadcast crashed) -> {
                     gpsimu.setStatus(1);
                     terminate();
@@ -50,7 +48,7 @@ public class PoseService extends MicroService {
                     }
                     if(terminated.getService() == "fusion")
                     {
-                        gpsimu.setStatus(1);
+                       gpsimu.setStatus(1);
                         this.terminate();
                     }
                     if(terminated.getService() == "time")
@@ -62,11 +60,26 @@ public class PoseService extends MicroService {
                 }
         );
         subscribeBroadcast(TickBroadcast.class, (TickBroadcast tick) -> {
-            int currntTick=tick.getTick();
-            Pose t=gpsimu.getPoseList().get(currntTick);
-           // PoseEvent e=new PoseEvent(t,currntTick);
-            sendEvent(new PoseEvent(t,tick.getTick()));
+            int currentTick=tick.getTick();
+            if(currentTick == 0)
+            {
+                System.out.println("getting started");
+            }
+            else if(currentTick <= gpsimu.getPoseList().size())
+            {
+                Pose t=gpsimu.getPoseList().get(currentTick-1);
+                sendEvent(new PoseEvent(t,tick.getTick()));
+            }
+            else {
+                sendBroadcast(new TerminatedBroadcast("pose"));
+            }
+
         });
+        System.out.println(this.gpsimu.toString());
+        SystemServicesCountDownLatch.getInstance().getCountDownLatch().countDown();
+
+
+
 
     }
 }

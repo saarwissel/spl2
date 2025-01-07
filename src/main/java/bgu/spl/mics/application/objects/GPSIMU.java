@@ -41,6 +41,8 @@ public class GPSIMU {
         } else if(i == 2){
             this.status = Status.ERROR;
         }
-        System.out.println("Plese enter right status");
+        else {
+            System.out.println("Plese enter right status ");
+        }
     }
 }

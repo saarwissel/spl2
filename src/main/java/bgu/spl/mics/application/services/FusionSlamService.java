@@ -77,8 +77,12 @@ public class FusionSlamService extends MicroService {
                     terminate();
                 }
         );
+        System.out.println("yaya was here jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
+
         subscribeEvent(TrackedObjectsEvents.class, (TrackedObjectsEvents t) -> {
             // Update the global map with the new tracked object
+            System.out.println(  " was hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+
             if(FusionSlam.getInstance().getPoses().get(t.getDetectionTime()) == null)
             {
                 this.waitingList.addAll(t.getTrackedObjects());
@@ -86,7 +90,7 @@ public class FusionSlamService extends MicroService {
             else if (FusionSlam.getInstance().getLandMarks().size() == 0){
                 for (TrackedObject trackedObject : t.getTrackedObjects()) {
                     LandMark landy=new LandMark(trackedObject.getId(), trackedObject.getDescription(), trackedObject.getCloudPoints(), FusionSlam.getInstance().getPoses().get(t.getDetectionTime()));
-                    System.out.println(landy.toString()+"saar");
+
                     FusionSlam.getInstance().getLandMarks().add(landy);
                 }
                 int sumLandMarks = FusionSlam.getInstance().getLandMarks().size();
@@ -117,6 +121,7 @@ public class FusionSlamService extends MicroService {
             complete(t, true);
         });
         subscribeEvent(PoseEvent.class, (PoseEvent pose) -> {
+            System.out.println("send a pose event");
             FusionSlam.getInstance().getPoses().add(pose.getPose());
             if(this.waitingList.size() > 0)
             {
@@ -132,6 +137,10 @@ public class FusionSlamService extends MicroService {
             }
             complete(pose, true);
         });
+        System.out.println("finish init"+ this.getName());
+        SystemServicesCountDownLatch.getInstance().getCountDownLatch().countDown();
+
+
 
     }
 }
