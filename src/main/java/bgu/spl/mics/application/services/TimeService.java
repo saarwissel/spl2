@@ -69,7 +69,7 @@ public class TimeService extends MicroService {
             TickBroadcast Tsend = new TickBroadcast(this.currentTick);
             sendBroadcast(Tsend);
             try {
-                Thread.sleep(this.TickTime);
+                Thread.sleep(this.TickTime*1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

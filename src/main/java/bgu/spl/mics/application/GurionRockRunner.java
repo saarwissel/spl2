@@ -119,8 +119,9 @@ public class GurionRockRunner {
             // Initialize Pose Service
             PoseService poseService = new PoseService(gpsimu);
             threads.add(new Thread(poseService));
+            serviceCounter++;
 
-            SystemServicesCountDownLatch.init(6);
+            SystemServicesCountDownLatch.init(serviceCounter);
             System.out.println(serviceCounter);
 
 

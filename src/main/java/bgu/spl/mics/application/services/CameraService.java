@@ -49,8 +49,6 @@ public class CameraService extends MicroService {
         else {
             addStat = 0;
         }
-
-
         if (camera.getStampedDetectedObjects() != null && !camera.getStampedDetectedObjects().isEmpty() )
         {
 
