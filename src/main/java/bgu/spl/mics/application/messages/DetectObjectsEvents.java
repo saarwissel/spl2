@@ -9,12 +9,12 @@ public class DetectObjectsEvents implements Event {
     private int time;
     private int detectionTime;
     public int cameraFreq;
-    private List<DetectedObject> dt;
+    private List<DetectedObject> detectedObjects;
 
-    public DetectObjectsEvents(int time,int cameraFreq, List<DetectedObject>dt, int detectionTime) {
+    public DetectObjectsEvents(int time,int cameraFreq, List<DetectedObject>detectedObjects, int detectionTime) {
         this.time = time;
         this.cameraFreq = cameraFreq;
-        this.dt = dt;
+        this.detectedObjects = detectedObjects;
         this.detectionTime = detectionTime;
     }
 
@@ -31,6 +31,6 @@ public class DetectObjectsEvents implements Event {
     }
 
     public List<DetectedObject> getDt() {
-        return dt;
+        return detectedObjects;
     }
 }

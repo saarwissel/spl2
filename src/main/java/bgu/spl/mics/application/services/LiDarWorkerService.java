@@ -19,6 +19,7 @@ public class LiDarWorkerService extends MicroService {
     LiDarWorkerTracker LiDarWorkerTracker;
     private int currentTick=0;
     List<TrackedObject>readyToSend;
+    List<DetectedObject> detected;
 
     /**
      * Constructor for LiDarService.
@@ -74,6 +75,7 @@ public class LiDarWorkerService extends MicroService {
             int detectionTime = event.getTime();
             int i =0;
             int sumT = 0;
+            Boolean send=false;
             StampedCloudPoints s;
             List<List<Double>> thecloud; // Specify the type as List<List<Double>>
 
@@ -95,8 +97,11 @@ public class LiDarWorkerService extends MicroService {
 
                 }
                         else {
+
                             thecloud = s.getCloudPoints(); // Use the correct type
-                            readyToSend.add((this.LiDarWorkerTracker.maketrack(event, t, thecloud)));
+                            TrackedObject tO= this.LiDarWorkerTracker.maketrack(event,t,thecloud);
+                            readyToSend.add(tO);
+                            System.out.println("flagggg5");
                          i++;
                             sumT = sumT + readyToSend.size();
                             StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
@@ -105,14 +110,22 @@ public class LiDarWorkerService extends MicroService {
                 if (sumT == LiDarDataBase.getInstance().getStumpedCloudPoints().size()) {
                     sendBroadcast(new TerminatedBroadcast("lidar"));
                 }
+                if(!readyToSend.isEmpty()){
+                    for(TrackedObject Track:readyToSend){
+                        if (currentTick >= Track.getDetectionTime() + this.LiDarWorkerTracker.getFrequency()) {
+                            System.out.println("flag 4");
+                            TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend);
+                            send=true;
+                            sendEvent(e);
 
-                if (currentTick >= detectionTime + this.LiDarWorkerTracker.getFrequency()) {
-                    System.out.println("flag 4");
+                    }
 
-                    TrackedObjectsEvents e = new TrackedObjectsEvents(detectionTime + LiDarWorkerTracker.getFrequency(), readyToSend);
-                   this.clear(readyToSend);
-                    sendEvent(e);
                 }
+
+                }
+            }
+            if(send){
+                this.clear(readyToSend);
             }
             complete(event,true);
             });
