@@ -20,6 +20,7 @@ public class LiDarWorkerService extends MicroService {
     private int currentTick=0;
     List<TrackedObject>readyToSend;
     List<DetectedObject> detected;
+    Boolean send=false;
 
     /**
      * Constructor for LiDarService.
@@ -75,7 +76,7 @@ public class LiDarWorkerService extends MicroService {
             int detectionTime = event.getTime();
             int i =0;
             int sumT = 0;
-            Boolean send=false;
+
             StampedCloudPoints s;
             List<List<Double>> thecloud; // Specify the type as List<List<Double>>
 
@@ -101,8 +102,7 @@ public class LiDarWorkerService extends MicroService {
                             thecloud = s.getCloudPoints(); // Use the correct type
                             TrackedObject tO= this.LiDarWorkerTracker.maketrack(event,t,thecloud);
                             readyToSend.add(tO);
-                            System.out.println("flagggg5");
-                         i++;
+                            i++;
                             sumT = sumT + readyToSend.size();
                             StatisticalFolder.getInstance().setNumTrackedObjects(sumT);// סטטיסטיקה סינגלטון סטטיסטי
 
@@ -125,7 +125,8 @@ public class LiDarWorkerService extends MicroService {
                 }
             }
             if(send){
-                this.clear(readyToSend);
+                readyToSend.clear();
+                send=false;
             }
             complete(event,true);
             });

@@ -146,15 +146,10 @@ public class GurionRockRunner {
                 thread.join();
             }
 
-            // Output Results
-            writeOutput(outputPath, fusionSlam);
-            logger.info("Simulation completed successfully. Output written to: " + outputPath);
-            System.out.println("landmarksssssss");
 
-            fusionSlam.getLandMarks().forEach(landMark -> {
-                System.out.println("landmarks");
-                System.out.println(landMark.toString());
-            });
+            JSONOutputWriter.writeStatisticsToFile();
+
+            logger.info("Simulation completed. Output written to JSON.");
 
         } catch (Exception e) {
             logger.severe("An error occurred during the simulation: " + e.getMessage());
@@ -162,37 +157,6 @@ public class GurionRockRunner {
         }
 
     }
-
-    private static void writeOutput(String outputPath, FusionSlam fusionSlam) {
-        try (FileWriter writer = new FileWriter(outputPath)) {
-            JsonObject output = new JsonObject();
-
-            // Add landmarks to output
-            JsonArray landmarks = new JsonArray();
-            for (LandMark landmark : fusionSlam.getLandMarks()) {
-                JsonObject landMarkJson = new JsonObject();
-                landMarkJson.addProperty("id", landmark.getId());
-                landMarkJson.addProperty("description", landmark.getDescription());
-                JsonArray coordinates = new JsonArray();
-                for (CloudPoint point : landmark.getLandCloudPoints()) {
-                    JsonObject coordinate = new JsonObject();
-                    coordinate.addProperty("x", point.getX());
-                    coordinate.addProperty("y", point.getY());
-                    coordinates.add(coordinate);
-                }
-                landMarkJson.add("coordinates", coordinates);
-                landmarks.add(landMarkJson);
-            }
-            output.add("landMarks", landmarks);
-
-            // Write to file
-            writer.write(new Gson().toJson(output));
-        } catch (IOException e) {
-            System.err.println("Failed to write output file: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
     // Configuration Class
     private static class Configuration {
         CamerasConfig Cameras;

@@ -22,6 +22,7 @@ public class LandMark {
         this.LandCloudPoints=new ArrayList<>();
         this.globalX = 0;
         this.gloablY = 0;
+        this.pose=pose;
         if(TrackedCloudPoints.size()>0){
             for(CloudPoint cloudPoint:TrackedCloudPoints) {
                 this.globalX = calculX(cloudPoint.getX(), cloudPoint.getY());
@@ -29,7 +30,6 @@ public class LandMark {
                 LandCloudPoints.add(new CloudPoint(this.globalX, this.gloablY));
             }
         }
-        this.pose=pose;
     }
 
     public String getId() {

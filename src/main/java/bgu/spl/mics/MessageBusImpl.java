@@ -37,6 +37,7 @@ public class MessageBusImpl implements MessageBus {
 		System.out.println(m.getName() + " subscribed to Event: " + type.getSimpleName());
 	}
 
+
 	@Override
 	public void subscribeBroadcast(Class<? extends Broadcast> type, MicroService m) {
 		synchronized (broadcastSubscribers) {

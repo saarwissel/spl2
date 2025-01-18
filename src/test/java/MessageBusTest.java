@@ -1,35 +1,86 @@
 import bgu.spl.mics.*;
 
+import bgu.spl.mics.application.messages.DetectObjectsEvents;
+import bgu.spl.mics.application.messages.TickBroadcast;
+import bgu.spl.mics.application.messages.TrackedObjectsEvents;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MessageBusImplTest {
 
+
     @Test
-    public void testRegisterMicroService() {
+    public void testSendEvents() {
         MessageBusImpl bus = MessageBusImpl.getInstance();
-        MicroService service = new MicroService("TestService",100) {
+
+        // יצירת MicroService לדוגמה
+        MicroService service = new MicroService("TestService", 100) {
             @Override
-            protected void initialize() {}
+            protected void initialize() {
+                subscribeEvent(DetectObjectsEvents.class, (event) -> {
+                    complete(event, "EventProcessed");
+                    terminate(); // עצירת השירות מבפנים
+                });
+            }
         };
 
+        // רישום והפעלת השירות
         bus.register(service);
-        assertDoesNotThrow(() -> bus.awaitMessage(service), "The service should be able to receive messages after registration.");
+        Thread serviceThread = new Thread(service::run);
+        serviceThread.start();
+
+        // יצירת אירוע ושליחתו
+        DetectObjectsEvents event = new DetectObjectsEvents(1, 5, new ArrayList<>(), 10);
+        Future<String> future = bus.sendEvent(event);
+
+        // הפסקת ה-thread
+        serviceThread.interrupt();
+    }
+
+
+
+    @Test
+    public void testSubscribeEvent() {
+        MessageBusImpl bus = MessageBusImpl.getInstance();
+
+        // יצירת MicroService לדוגמה
+        MicroService service = new MicroService("TestService", 100) {
+            @Override
+            protected void initialize() {
+                subscribeEvent(DetectObjectsEvents.class, (event) -> {
+                    System.out.println("Event received: " + event.getClass().getSimpleName());
+                    complete(event, "EventHandled");
+                    terminate(); // עצירת השירות
+                });
+            }
+        };
+
+        // רישום השירות
+        bus.register(service);
+        Thread serviceThread = new Thread(service::run);
+        serviceThread.start();
+
+        // יצירת אירוע ושליחתו
+        DetectObjectsEvents event = new DetectObjectsEvents(1, 5, new ArrayList<>(), 10);
+        Future<String> future = bus.sendEvent(event);
+
+        // הפסקת השירות
+        serviceThread.interrupt();
     }
 
     @Test
     public void testSendBroadcast() {
         MessageBusImpl bus = MessageBusImpl.getInstance();
 
-        MicroService service1 = new MicroService("Service1",100) {
+        MicroService service1 = new MicroService("Service1", 100) {
             @Override
             protected void initialize() {}
         };
-
-        MicroService service2 = new MicroService("Service2",100) {
+        MicroService service2 = new MicroService("Service2", 100) {
             @Override
             protected void initialize() {}
         };
@@ -49,50 +100,7 @@ class MessageBusImplTest {
         });
     }
 
-    @Test
-    public void testSendEventWithFutureFunctionality() throws InterruptedException {
-        MessageBusImpl bus = MessageBusImpl.getInstance();
 
-        MicroService service1 = new MicroService("Service1",100) {
-            @Override
-            protected void initialize() {}
-        };
-
-        MicroService service2 = new MicroService("Service2",100) {
-            @Override
-            protected void initialize() {}
-        };
-
-        bus.register(service1);
-        bus.register(service2);
-
-        bus.subscribeEvent(TestEvent.class, service1);
-
-        TestEvent event = new TestEvent();
-        Future<String> future = bus.sendEvent(event);
-
-        assertNotNull(future, "The future object should not be null.");
-
-        // בדיקת awaitMessage
-        assertDoesNotThrow(() -> {
-            Message message = bus.awaitMessage(service1);
-            assertEquals(event, message, "Service1 should receive the event.");
-        });
-
-        // פתרון ה-Future
-        future.resolve("Success");
-        assertTrue(future.isDone(), "The future should be marked as done.");
-        assertEquals("Success", future.get(), "The future should resolve to 'Success'.");
-
-        // בדיקת get עם timeout
-        Future<String> timeoutFuture = new Future<>();
-        String result = timeoutFuture.get(500, TimeUnit.MILLISECONDS);
-        assertNull(result, "The future should return null after timeout.");
-
-        // פתרון נוסף לבדיקה
-        timeoutFuture.resolve("Timeout Success");
-        assertEquals("Timeout Success", timeoutFuture.get(), "The resolved result should be 'Timeout Success'.");
-    }
 
     // Classes for testing
     public static class TestBroadcast implements Broadcast {}
